@@ -852,74 +852,58 @@
                 <div style="background: #d32f2f; width: 80px; height: 100%; position: absolute; right: 0; top: 0; clip-path: polygon(25px 0, 100% 0, 100% 100%, 0 100%); display: flex; align-items: center; justify-content: flex-end; padding-right: 12px; gap: 4px;">
                     <div style="width: 4px; height: 16px; background: rgba(255,255,255,0.4); transform: skewX(-20deg);"></div>
                     <div style="width: 4px; height: 16px; background: rgba(255,255,255,0.4); transform: skewX(-20deg);"></div>
-                </div>
+                    </div>
             </div>
-            <div class="content" style="padding: 14px;">
-                <div class="card" style="display:flex; flex-direction:column; gap:14px; border-radius: 16px; padding: 16px; border: 1px solid #e2e8f0; box-shadow: 0 4px 14px rgba(0,0,0,0.03); background: #ffffff; position: relative; overflow: hidden;">
-                    <!-- Red Header Accent Strip -->
-                    <div style="position: absolute; top: 0; left: 0; right: 0; height: 4px; background: #d32f2f;"></div>
-                    
-                    <p style="font-size:12px; color:#64748b; text-align:center; line-height:1.4; margin-top: 4px; font-family: var(--font); font-weight: 500;">
-                        Selecciona tu unidad a cargo para validar tu nombre, e ingresa el kilometraje actual de tu tablero.
-                    </p>
-                    
-                    <!-- UNIDAD Select Dropdown with custom styling & red truck icon prefix -->
-                    <div class="form-group" style="gap: 6px;">
-                        <label style="font-size: 11px; font-weight: 700; letter-spacing: 0.5px; color: #475569; display: flex; align-items: center; gap: 6px; font-family: var(--font);">
-                            UNIDAD
-                        </label>
-                        <div style="position: relative; width: 100%;">
-                            <select id="op-unit" onchange="onOperatorUnitChange()" style="width: 100%; height: 46px; background: #ffffff; border: 1px solid #cbd5e1; border-radius: 12px; color: #0f172a; font-family: var(--font); font-weight: 600; font-size: 14px; padding: 0 16px; outline: none; -webkit-appearance: none; appearance: none; cursor: pointer; box-shadow: 0 1px 2px rgba(0,0,0,0.02);">
-                                <option value="">Selecciona unidad...</option>
-                            </select>
-                            <!-- Chevron icon at right of select -->
-                            <div style="position: absolute; right: 14px; top: 50%; transform: translateY(-50%); pointer-events: none; display: flex; align-items: center;">
-                                <svg viewBox="0 0 24 24" style="width: 16px; height: 16px; fill: none; stroke: #94a3b8; stroke-width: 2.5;"><polyline points="6 9 12 15 18 9"/></svg>
+
+            <!-- STEP 1: Unit list -->
+            <div id="op-step-list" class="content" style="padding: 10px 14px 14px;">
+                <p style="font-size:12px; color:#64748b; text-align:center; line-height:1.4; margin-bottom:10px; font-family:var(--font); font-weight:500;">
+                    Selecciona tu unidad para ingresar el kilometraje.
+                </p>
+                <div id="op-unit-list" style="display:flex; flex-direction:column; gap:8px;"></div>
+            </div>
+
+            <!-- STEP 2: KM form (hidden until unit selected) -->
+            <div id="op-step-form" style="display:none;">
+                <div class="content" style="padding:14px;">
+                    <div class="card" style="display:flex; flex-direction:column; gap:14px; border-radius:16px; padding:16px; border:1px solid #e2e8f0; box-shadow:0 4px 14px rgba(0,0,0,0.03); background:#ffffff; position:relative; overflow:hidden;">
+                        <div style="position:absolute; top:0; left:0; right:0; height:4px; background:#d32f2f;"></div>
+
+                        <!-- Selected unit summary card -->
+                        <div id="op-selected-card" style="display:flex; align-items:center; gap:12px; padding:10px 12px; border:1px solid #e2e8f0; border-radius:12px; background:#f8fafc; cursor:pointer;" onclick="operatorBackToList()">
+                            <img src="toyota_hilux_white.png" alt="Truck" style="width:40px; height:auto; object-fit:contain; flex-shrink:0;">
+                            <div id="op-selected-num" style="background:#f0f7ff; color:#0066ff; font-weight:700; font-size:11px; width:38px; height:24px; border-radius:6px; display:flex; align-items:center; justify-content:center; flex-shrink:0; font-family:var(--font);">—</div>
+                            <div style="flex:1; min-width:0;">
+                                <div id="op-selected-label" style="font-size:13px; font-weight:700; color:#0f172a; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; font-family:var(--font);">—</div>
+                                <div id="op-selected-resp" style="font-size:11px; color:#64748b; font-weight:500; font-family:var(--font);">—</div>
+                            </div>
+                            <div style="display:flex; align-items:center; gap:6px; flex-shrink:0;">
+                                <span id="op-selected-badge"></span>
+                                <svg viewBox="0 0 24 24" style="width:12px; height:12px; stroke:#94a3b8; fill:none; stroke-width:3;"><polyline points="6 9 12 15 18 9"/></svg>
+                                <span style="font-size:10px; color:#94a3b8; font-family:var(--font);">cambiar</span>
                             </div>
                         </div>
-                    </div>
 
-
-
-                    <!-- Operator Dynamic info block styled matching image 2 welcome details -->
-                    <div id="op-info-card" style="display:none; background:#fff5f5; border:1px dashed #fca5a5; border-radius:14px; padding:16px; flex-direction:column; gap:12px; box-shadow: 0 2px 8px rgba(220,38,38,0.02);">
-                        <div id="op-welcome-text" style="font-size:13px; font-weight:700; color:#b91c1c; text-align:center; padding-bottom:8px; line-height:1.4; font-family: var(--font);">
-                            👋 ¡Hola! Bienvenido...
-                        </div>
-                        
-                        <!-- List of details styled exactly like mockup rows -->
-                        <div style="display:flex; justify-content:space-between; align-items:center; font-size:12px; border-top:1px solid rgba(220,38,38,0.1); padding-top:10px; font-family: var(--font);">
-                            <span style="color:#64748b; font-weight:700; font-size:10px; display:flex; align-items:center; gap:6px;">👤 RESPONSABLE</span>
-                            <span id="op-name" style="font-weight:700; color:#0f172a;">—</span>
-                        </div>
-                        <div style="display:flex; justify-content:space-between; align-items:center; font-size:12px; border-top:1px solid rgba(220,38,38,0.1); padding-top:10px; font-family: var(--font);">
-                            <span style="color:#64748b; font-weight:700; font-size:10px; display:flex; align-items:center; gap:6px;">🚗 KM ANTERIOR</span>
+                        <!-- KM info row -->
+                        <div style="display:flex; justify-content:space-between; align-items:center; font-size:12px; border-top:1px solid #f1f5f9; padding-top:12px; font-family:var(--font);">
+                            <span style="color:#64748b; font-weight:700; font-size:10px;">🚗 KM ANTERIOR REGISTRADO</span>
                             <span id="op-km-prev" style="font-weight:700; color:#0f172a; font-family:var(--font);">—</span>
                         </div>
-                        <div style="display:flex; justify-content:space-between; align-items:center; font-size:12px; border-top:1px solid rgba(220,38,38,0.1); padding-top:10px; font-family: var(--font);">
-                            <span style="color:#64748b; font-weight:700; font-size:10px; display:flex; align-items:center; gap:6px;">🎯 ESTADO ACTUAL</span>
-                            <span id="op-badge-placeholder"></span>
-                        </div>
-                    </div>
 
-                    <!-- KILOMETRAJE ACTUAL Input with premium styled icon -->
-                    <div class="form-group" style="gap: 6px;">
-                        <label style="font-size: 11px; font-weight: 700; letter-spacing: 0.5px; color: #475569; display: flex; align-items: center; gap: 6px; font-family: var(--font);">
-                            KILOMETRAJE ACTUAL (MANUAL)
-                        </label>
-                        <div style="position: relative; width: 100%;">
-                            <!-- Input Icon Prefix -->
-                            <div style="position: absolute; left: 14px; top: 50%; transform: translateY(-50%); pointer-events: none; display: flex; align-items: center; justify-content: center; font-size: 14px; color: #94a3b8;">
-                                ⚙️
+                        <!-- KM input -->
+                        <div class="form-group" style="gap:6px;">
+                            <label style="font-size:11px; font-weight:700; letter-spacing:0.5px; color:#475569; display:flex; align-items:center; gap:6px; font-family:var(--font);">KILOMETRAJE ACTUAL (TABLERO)</label>
+                            <div style="position:relative; width:100%;">
+                                <div style="position:absolute; left:14px; top:50%; transform:translateY(-50%); pointer-events:none; font-size:14px; color:#94a3b8;">⚙️</div>
+                                <input type="number" inputmode="numeric" id="op-km-input" placeholder="Ingresa lectura del tablero" style="padding-left:42px; border-radius:12px; height:46px; border:1px solid #cbd5e1; background:#ffffff; color:#0f172a; width:100%; font-size:14px; outline:none; font-family:var(--font); font-weight:600;">
                             </div>
-                            <input type="number" inputmode="numeric" id="op-km-input" placeholder="Ingresa lectura del tablero" style="padding-left: 42px; border-radius: 12px; height: 46px; border: 1px solid #cbd5e1; background: #ffffff; color: #0f172a; width: 100%; font-size: 14px; outline: none; font-family: var(--font); font-weight: 600; box-shadow: inset 0 1px 2px rgba(0,0,0,0.02);">
                         </div>
-                    </div>
 
-                    <!-- Red Primary Registrar Button -->
-                    <button class="btn btn-primary" id="op-btn" onclick="saveOperatorKM()" style="height: 46px; border-radius: 12px; background: linear-gradient(135deg, #d32f2f 0%, #b91c1c 100%); display: flex; align-items: center; justify-content: center; gap: 8px; font-weight: 600; font-size: 15px; box-shadow: 0 4px 12px rgba(211, 47, 47, 0.2); border: none; color: #ffffff; cursor: pointer; width: 100%; margin-top: 6px;">
-                        ⚙️ Registrar Kilometraje
-                    </button>
+                        <!-- Save button -->
+                        <button class="btn btn-primary" id="op-btn" onclick="saveOperatorKM()" style="height:46px; border-radius:12px; background:linear-gradient(135deg,#d32f2f 0%,#b91c1c 100%); display:flex; align-items:center; justify-content:center; gap:8px; font-weight:600; font-size:15px; box-shadow:0 4px 12px rgba(211,47,47,0.2); border:none; color:#ffffff; cursor:pointer; width:100%; margin-top:2px;">
+                            ⚙️ Registrar Kilometraje
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -2004,74 +1988,109 @@
 
         async function showOperatorScreen() {
             show("s-operator");
+            // Reset to step 1
+            document.getElementById("op-step-list").style.display = "";
+            document.getElementById("op-step-form").style.display = "none";
+            document.getElementById("op-km-input").value = "";
             loading(true);
             try {
-                // Fetch units dynamically without requiring full log in
                 unidades = await apiGet("unidades");
-                // Recalculate alerts and percentage in real-time
                 unidades.forEach(u => {
                     if (u.km_actual === 0 || !u.km_actual || u.km_actual === "") {
-                        u.alerta = "SIN_KM";
-                        u.pct_uso = 0;
-                        u.restantes = 0;
+                        u.alerta = "SIN_KM"; u.pct_uso = 0; u.restantes = 0;
                     } else {
                         const rec = u.recorridos || 0;
                         const int = u.intervalo || 5000;
                         u.pct_uso = (rec / int) * 100;
                         u.restantes = int - rec;
-                        if (u.pct_uso <= 60) {
-                            u.alerta = "AL_DIA";
-                        } else if (u.pct_uso <= 100) {
-                            u.alerta = "PROXIMO";
-                        } else {
-                            u.alerta = "URGENTE";
-                        }
+                        if (u.pct_uso <= 60) u.alerta = "AL_DIA";
+                        else if (u.pct_uso <= 100) u.alerta = "PROXIMO";
+                        else u.alerta = "URGENTE";
                     }
                 });
-
-                const select = document.getElementById("op-unit");
-                select.innerHTML = '<option value="">Selecciona unidad...</option>' + 
-                    unidades.map(u => `<option value="${u.id}">${u.id} — ${u.descripcion}</option>`).join("");
-                
-                document.getElementById("op-info-card").style.display = "none";
-                document.getElementById("op-km-input").value = "";
+                renderOperatorUnitList();
             } catch (e) {
                 showToast("Error al cargar lista de unidades");
             }
             loading(false);
         }
 
-        function onOperatorUnitChange() {
-            const select = document.getElementById("op-unit");
-            const id = select.value;
-            const card = document.getElementById("op-info-card");
-            if (!id) {
-                card.style.display = "none";
-                return;
-            }
+        function renderOperatorUnitList() {
+            const list = document.getElementById("op-unit-list");
+            list.innerHTML = unidades.map(u => {
+                const unitNum = u.id.replace("U-", "");
+                let badgeBg, badgeColor, badgeDotColor, labelText, barColorVal;
+                if (u.alerta === "AL_DIA") {
+                    badgeBg = "#ecfdf5"; badgeColor = "#065f46"; badgeDotColor = "#10b981"; barColorVal = "#10b981"; labelText = "Al día";
+                } else if (u.alerta === "PROXIMO") {
+                    badgeBg = "#fffbeb"; badgeColor = "#92400e"; badgeDotColor = "#f59e0b"; barColorVal = "#f59e0b"; labelText = "Próximo";
+                } else if (u.alerta === "URGENTE") {
+                    badgeBg = "#fef2f2"; badgeColor = "#991b1b"; badgeDotColor = "#ef4444"; barColorVal = "#ef4444"; labelText = "Urgente";
+                } else {
+                    badgeBg = "#f1f5f9"; badgeColor = "#475569"; badgeDotColor = "#64748b"; barColorVal = "#cbd5e1"; labelText = "Sin km";
+                }
+                const pct = Math.min(100, u.pct_uso || 0);
+                return `
+                    <div onclick="selectOperatorUnit('${u.id}')" style="display:flex; align-items:center; gap:12px; padding:12px 10px; border:1px solid #e2e8f0; border-radius:12px; background:#ffffff; cursor:pointer; box-shadow:0 1px 4px rgba(0,0,0,0.04);">
+                        <img src="toyota_hilux_white.png" alt="Truck" style="width:44px; height:auto; object-fit:contain; flex-shrink:0;">
+                        <div style="background:#f0f7ff; color:#0066ff; font-weight:700; font-size:11px; width:38px; height:24px; border-radius:6px; display:flex; align-items:center; justify-content:center; flex-shrink:0; font-family:var(--font);">${unitNum}</div>
+                        <div style="flex:1; min-width:0; display:flex; flex-direction:column; gap:2px;">
+                            <div style="font-size:13px; font-weight:700; color:#0f172a; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; font-family:var(--font);">${u.id} — ${u.descripcion}</div>
+                            <div style="font-size:11px; color:#64748b; font-weight:500; font-family:var(--font);">${u.responsable || "Sin asignar"}</div>
+                            <div style="height:4px; border-radius:2px; background:#f1f5f9; margin-top:4px; overflow:hidden; width:100%;">
+                                <div style="height:100%; border-radius:2px; width:${pct}%; background:${barColorVal};"></div>
+                            </div>
+                        </div>
+                        <div style="display:flex; align-items:center; gap:8px; flex-shrink:0;">
+                            <div style="background:${badgeBg}; color:${badgeColor}; font-size:10px; font-weight:700; padding:4px 8px; border-radius:12px; display:flex; align-items:center; gap:4px; white-space:nowrap; font-family:var(--font);">
+                                <span style="font-size:12px; line-height:1; color:${badgeDotColor};">●</span> ${labelText}
+                            </div>
+                            <svg viewBox="0 0 24 24" style="width:14px; height:14px; stroke:#94a3b8; fill:none; stroke-width:3; stroke-linecap:round; flex-shrink:0;"><polyline points="9 18 15 12 9 6"/></svg>
+                        </div>
+                    </div>
+                `;
+            }).join("");
+        }
 
+        function selectOperatorUnit(id) {
             const u = unidades.find(x => x.id === id);
             if (!u) return;
 
-            const name = u.responsable || "Operador";
-            document.getElementById("op-welcome-text").innerHTML = `👋 ¡Hola!<br>Bienvenido <strong>${name}</strong>,<br>agradecemos tu cooperación.`;
-            document.getElementById("op-name").textContent = name;
+            // Populate the summary card in step 2
+            const unitNum = u.id.replace("U-", "");
+            document.getElementById("op-selected-num").textContent = unitNum;
+            document.getElementById("op-selected-label").textContent = `${u.id} — ${u.descripcion}`;
+            document.getElementById("op-selected-resp").textContent = u.responsable || "Sin asignar";
             document.getElementById("op-km-prev").textContent = u.km_actual > 0 ? u.km_actual.toLocaleString() + " km" : "Sin registro";
-            
-            const badgePlaceholder = document.getElementById("op-badge-placeholder");
-            badgePlaceholder.innerHTML = `<span class="badge ${badgeClass(u.alerta)}" style="font-size:10px">${badgeLabel(u.alerta)}</span>`;
-            
-            card.style.display = "flex";
-            
+
+            let badgeBg, badgeColor, badgeDotColor, labelText;
+            if (u.alerta === "AL_DIA") { badgeBg="#ecfdf5"; badgeColor="#065f46"; badgeDotColor="#10b981"; labelText="Al día"; }
+            else if (u.alerta === "PROXIMO") { badgeBg="#fffbeb"; badgeColor="#92400e"; badgeDotColor="#f59e0b"; labelText="Próximo"; }
+            else if (u.alerta === "URGENTE") { badgeBg="#fef2f2"; badgeColor="#991b1b"; badgeDotColor="#ef4444"; labelText="Urgente"; }
+            else { badgeBg="#f1f5f9"; badgeColor="#475569"; badgeDotColor="#64748b"; labelText="Sin km"; }
+            document.getElementById("op-selected-badge").innerHTML = `<div style="background:${badgeBg}; color:${badgeColor}; font-size:10px; font-weight:700; padding:4px 8px; border-radius:12px; display:flex; align-items:center; gap:4px; font-family:var(--font);"><span style="color:${badgeDotColor};">●</span> ${labelText}</div>`;
+
             const input = document.getElementById("op-km-input");
             input.value = "";
-            input.placeholder = u.km_actual > 0 ? `Mayor a ${u.km_actual}` : "Ingresa km actual";
-            input.focus();
+            input.placeholder = u.km_actual > 0 ? `Mayor a ${u.km_actual.toLocaleString()}` : "Ingresa km actual";
+
+            // Store selected unit id on the form element
+            document.getElementById("op-step-form").dataset.unitId = id;
+
+            // Switch to step 2
+            document.getElementById("op-step-list").style.display = "none";
+            document.getElementById("op-step-form").style.display = "";
+            setTimeout(() => input.focus(), 200);
+        }
+
+        function operatorBackToList() {
+            document.getElementById("op-step-list").style.display = "";
+            document.getElementById("op-step-form").style.display = "none";
+            document.getElementById("op-km-input").value = "";
         }
 
         async function saveOperatorKM() {
-            const select = document.getElementById("op-unit");
-            const id = select.value;
+            const id = document.getElementById("op-step-form").dataset.unitId;
             if (!id) { showToast("Selecciona tu unidad"); return; }
 
             const u = unidades.find(x => x.id === id);
