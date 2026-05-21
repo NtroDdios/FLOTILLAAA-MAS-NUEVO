@@ -1,0 +1,2154 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>FlotaControl PWA</title>
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#0f1923">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="apple-touch-icon" href="icon-192.png">
+    <link
+        href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap"
+        rel="stylesheet">
+    <style>
+        :root {
+            --bg: #f8fafc;
+            --bg2: #ffffff;
+            --bg3: #f1f5f9;
+            --border: #e2e8f0;
+            --text: #0f172a;
+            --muted: #64748b;
+            --accent: #0066ff;
+            --green: #10b981;
+            --amber: #f59e0b;
+            --red: #ef4444;
+            --radius: 16px;
+            --font: 'DM Sans', sans-serif;
+            --mono: 'DM Sans', sans-serif;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            -webkit-tap-highlight-color: transparent
+        }
+
+        html,
+        body {
+            height: 100%;
+            overflow: hidden;
+            background: var(--bg);
+            font-family: var(--font);
+            color: var(--text)
+        }
+
+        #app {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            max-width: 430px;
+            margin: 0 auto;
+            position: relative
+        }
+
+        .screen {
+            display: none;
+            flex-direction: column;
+            flex: 1;
+            overflow: hidden
+        }
+
+        .screen.active {
+            display: flex
+        }
+
+        .topbar {
+            padding: 52px 20px 16px;
+            background: var(--bg);
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-shrink: 0
+        }
+
+        .topbar h1 {
+            font-size: 18px;
+            font-weight: 600;
+            flex: 1;
+            letter-spacing: -.3px
+        }
+
+        .role-pill {
+            font-size: 11px;
+            font-family: var(--mono);
+            padding: 4px 10px;
+            border-radius: 20px;
+            background: var(--bg3);
+            color: var(--muted);
+            border: 1px solid var(--border)
+        }
+
+        .back-btn {
+            width: 36px;
+            height: 36px;
+            border-radius: 10px;
+            background: var(--bg3);
+            border: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 18px;
+            color: var(--muted);
+            flex-shrink: 0
+        }
+
+        .content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            -webkit-overflow-scrolling: touch
+        }
+
+        .content::-webkit-scrollbar {
+            display: none
+        }
+
+        .nav {
+            display: flex;
+            background: var(--bg2);
+            border-top: 1px solid var(--border);
+            padding: 8px 12px calc(8px + env(safe-area-inset-bottom));
+            justify-content: space-around;
+            align-items: center;
+            box-shadow: 0 -4px 12px rgba(0,0,0,0.02);
+            flex-shrink: 0;
+        }
+
+        .nav-btn {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            padding: 8px 0;
+            cursor: pointer;
+            font-size: 11px;
+            font-weight: 500;
+            color: var(--muted);
+            border: none;
+            background: transparent;
+            border-radius: 12px;
+            transition: all 0.2s;
+        }
+
+        .nav-btn svg {
+            width: 22px;
+            height: 22px;
+            stroke: currentColor;
+            fill: none;
+            stroke-width: 1.8;
+            stroke-linecap: round;
+            stroke-linejoin: round
+        }
+
+        .nav-btn.active {
+            color: var(--accent);
+            background: #f0f7ff;
+            font-weight: 700;
+        }
+
+        .card {
+            background: var(--bg2);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 14px 16px
+        }
+
+        .card-sm {
+            background: var(--bg3);
+            border-radius: 10px;
+            padding: 12px
+        }
+
+        .stat-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px
+        }
+
+        .stat-box {
+            background: var(--bg2);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 14px
+        }
+
+        .stat-box .label {
+            font-size: 11px;
+            color: var(--muted);
+            font-family: var(--mono);
+            margin-bottom: 6px;
+            letter-spacing: .5px
+        }
+
+        .stat-box .value {
+            font-size: 26px;
+            font-weight: 600;
+            letter-spacing: -1px
+        }
+
+        .unit-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 13px 16px;
+            background: var(--bg2);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            cursor: pointer;
+            transition: background .15s
+        }
+
+        .unit-row:active {
+            background: var(--bg3)
+        }
+
+        .unit-avatar {
+            width: 42px;
+            height: 42px;
+            border-radius: 10px;
+            background: var(--bg3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: var(--mono);
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--accent);
+            flex-shrink: 0;
+            border: 1px solid var(--border)
+        }
+
+        .unit-info {
+            flex: 1;
+            min-width: 0
+        }
+
+        .unit-info .uid {
+            font-size: 14px;
+            font-weight: 600
+        }
+
+        .unit-info .desc {
+            font-size: 12px;
+            color: var(--muted);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            margin-top: 2px
+        }
+
+        .unit-info .resp {
+            font-size: 11px;
+            color: var(--muted);
+            margin-top: 3px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis
+        }
+
+        .km-bar {
+            height: 3px;
+            border-radius: 2px;
+            background: var(--border);
+            margin-top: 6px;
+            overflow: hidden
+        }
+
+        .km-bar-fill {
+            height: 100%;
+            border-radius: 2px
+        }
+
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 11px;
+            font-family: var(--mono);
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-weight: 500;
+            letter-spacing: .3px
+        }
+
+        .badge-green {
+            background: rgba(46, 204, 138, .12);
+            color: var(--green);
+            border: 1px solid rgba(46, 204, 138, .25)
+        }
+
+        .badge-amber {
+            background: rgba(245, 166, 35, .12);
+            color: var(--amber);
+            border: 1px solid rgba(245, 166, 35, .25)
+        }
+
+        .badge-red {
+            background: rgba(255, 71, 87, .12);
+            color: var(--red);
+            border: 1px solid rgba(255, 71, 87, .25)
+        }
+
+        .badge-muted {
+            background: var(--bg3);
+            color: var(--muted);
+            border: 1px solid var(--border)
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px
+        }
+
+        .form-group label {
+            font-size: 12px;
+            color: var(--muted);
+            font-family: var(--mono);
+            letter-spacing: .5px
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            background: var(--bg3);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            color: var(--text);
+            font-family: var(--font);
+            font-size: 14px;
+            padding: 11px 13px;
+            outline: none;
+            transition: border-color .15s;
+            width: 100%
+        }
+
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            border-color: var(--accent)
+        }
+
+        .form-group select option {
+            background: var(--bg3)
+        }
+
+        .form-group textarea {
+            resize: none
+        }
+
+        .btn {
+            width: 100%;
+            padding: 14px;
+            border-radius: 12px;
+            border: none;
+            font-family: var(--font);
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: opacity .15s, transform .1s;
+            letter-spacing: -.2px
+        }
+
+        .btn:active {
+            transform: scale(.98);
+            opacity: .85
+        }
+
+        .btn:disabled {
+            opacity: .5;
+            cursor: default
+        }
+
+        .btn-primary {
+            background: var(--accent);
+            color: #fff
+        }
+
+        .btn-ghost {
+            background: var(--bg3);
+            color: var(--text);
+            border: 1px solid var(--border)
+        }
+
+        .btn-amber {
+            background: rgba(245, 166, 35, .15);
+            color: var(--amber);
+            border: 1px solid rgba(245, 166, 35, .3)
+        }
+
+        .sec-label {
+            font-size: 11px;
+            font-family: var(--mono);
+            color: var(--muted);
+            letter-spacing: 1px;
+            margin-bottom: 8px;
+            padding-left: 2px
+        }
+
+        .hist-item {
+            padding: 11px 0;
+            border-bottom: 1px solid var(--border)
+        }
+
+        .hist-item:last-child {
+            border-bottom: none
+        }
+
+        .hist-item .hi-type {
+            font-size: 13px;
+            font-weight: 500
+        }
+
+        .hist-item .hi-meta {
+            font-size: 11px;
+            color: var(--muted);
+            font-family: var(--mono);
+            margin-top: 3px
+        }
+
+        #s-login {
+            background: #f1f5f9;
+            flex-direction: column;
+            align-items: center;
+            padding: 24px 20px;
+            overflow-y: auto;
+            gap: 0
+        }
+
+        .login-logo {
+            width: 72px;
+            height: 72px;
+            border-radius: 20px;
+            background: var(--bg2);
+            border: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 20px
+        }
+
+        .login-logo svg {
+            width: 36px;
+            height: 36px;
+            stroke: var(--accent);
+            fill: none;
+            stroke-width: 1.5;
+            stroke-linecap: round;
+            stroke-linejoin: round
+        }
+
+        .login-title {
+            font-size: 28px;
+            font-weight: 600;
+            letter-spacing: -1px;
+            margin-bottom: 4px
+        }
+
+        .login-sub {
+            font-size: 13px;
+            color: var(--muted);
+            margin-bottom: 28px
+        }
+
+        .login-form {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 12px
+        }
+
+        .err-msg {
+            font-size: 12px;
+            color: var(--red);
+            font-family: var(--mono);
+            text-align: center;
+            min-height: 18px
+        }
+
+        #loading {
+            position: fixed;
+            inset: 0;
+            background: var(--bg);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 999;
+            transition: opacity .3s
+        }
+
+        #loading.hide {
+            opacity: 0;
+            pointer-events: none
+        }
+
+        .spinner {
+            width: 32px;
+            height: 32px;
+            border: 2px solid var(--border);
+            border-top-color: var(--accent);
+            border-radius: 50%;
+            animation: spin .7s linear infinite
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg)
+            }
+        }
+
+        .success-wrap {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 16px;
+            padding: 32px
+        }
+
+        .success-icon {
+            width: 72px;
+            height: 72px;
+            border-radius: 50%;
+            background: rgba(46, 204, 138, .12);
+            border: 1px solid rgba(46, 204, 138, .3);
+            display: flex;
+            align-items: center;
+            justify-content: center
+        }
+
+        .success-icon svg {
+            width: 32px;
+            height: 32px;
+            stroke: var(--green);
+            fill: none;
+            stroke-width: 2;
+            stroke-linecap: round;
+            stroke-linejoin: round
+        }
+
+        #toast {
+            position: fixed;
+            bottom: 90px;
+            left: 50%;
+            transform: translateX(-50%) translateY(20px);
+            background: var(--bg3);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: 10px 20px;
+            font-size: 13px;
+            color: var(--text);
+            opacity: 0;
+            transition: opacity .25s, transform .25s;
+            pointer-events: none;
+            white-space: nowrap;
+            z-index: 1000
+        }
+
+        #toast.show {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0)
+        }
+
+        .km-detail-bar {
+            height: 8px;
+            border-radius: 4px;
+            background: var(--border);
+            overflow: hidden;
+            margin: 8px 0
+        }
+
+        .km-detail-fill {
+            height: 100%;
+            border-radius: 4px
+        }
+
+        .chips {
+            display: flex;
+            gap: 8px;
+            flex-wrap: nowrap;
+            overflow-x: auto;
+            padding-bottom: 4px;
+            flex-shrink: 0;
+            padding-right: 16px;
+        }
+
+        .chips::-webkit-scrollbar {
+            display: none
+        }
+
+        .chip {
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-family: var(--mono);
+            border: 1px solid var(--border);
+            background: var(--bg3);
+            color: var(--muted);
+            cursor: pointer;
+            white-space: nowrap;
+            transition: all .15s
+        }
+
+        .chip.active {
+            background: var(--accent);
+            color: #fff;
+            border-color: var(--accent)
+        }
+
+        .rep-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 0;
+            border-bottom: 1px solid var(--border)
+        }
+
+        .rep-row:last-child {
+            border-bottom: none
+        }
+
+        .rep-row p {
+            font-size: 13px;
+            font-weight: 500
+        }
+
+        .rep-row span {
+            font-size: 11px;
+            color: var(--muted);
+            font-family: var(--mono)
+        }
+
+        .user-info-box {
+            background: var(--bg3);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 12px 14px;
+            display: flex;
+            align-items: center;
+            gap: 12px
+        }
+
+        .user-avatar {
+            width: 38px;
+            height: 38px;
+            border-radius: 50%;
+            background: var(--bg2);
+            border: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--accent);
+            flex-shrink: 0
+        }
+
+        /* ── Semaforo Report Columns ── */
+        .report-traffic-lights {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 10px;
+            margin-top: 12px;
+            width: 100%;
+        }
+        @media (max-width: 380px) {
+            .report-traffic-lights {
+                grid-template-columns: 1fr;
+                gap: 12px;
+            }
+        }
+        .light-col {
+            background: var(--bg3);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 12px 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        .light-col:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+        }
+        .col-red {
+            border-top: 3px solid var(--red);
+        }
+        .col-amber {
+            border-top: 3px solid var(--amber);
+        }
+        .col-green {
+            border-top: 3px solid var(--green);
+        }
+        .light-header {
+            font-size: 11px;
+            font-weight: 600;
+            font-family: var(--mono);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid var(--border);
+            text-align: center;
+        }
+        .col-red .light-header { color: var(--red); }
+        .col-amber .light-header { color: var(--amber); }
+        .col-green .light-header { color: var(--green); }
+        .light-list {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+        .light-unit-card {
+            background: var(--bg2);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 8px 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            cursor: pointer;
+            transition: background 0.15s;
+        }
+        .light-unit-card:hover {
+            background: var(--bg3);
+        }
+        .light-unit-card .unit-name {
+            font-size: 13px;
+            font-weight: 600;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .light-unit-card .unit-detail {
+            font-size: 11px;
+            color: var(--muted);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .light-unit-card .unit-pct {
+            font-family: var(--mono);
+            font-size: 10px;
+            font-weight: 500;
+            padding: 2px 6px;
+            border-radius: 10px;
+        }
+        .col-red .unit-pct {
+            background: rgba(255, 71, 87, 0.12);
+            color: var(--red);
+        }
+        .col-amber .unit-pct {
+            background: rgba(245, 166, 35, 0.12);
+            color: var(--amber);
+        }
+        .col-green .unit-pct {
+            background: rgba(46, 204, 138, 0.12);
+            color: var(--green);
+        }
+    </style>
+</head>
+
+<body>
+    <div id="loading">
+        <div class="spinner"></div>
+    </div>
+    <div id="toast"></div>
+    <div id="app">
+
+        <!-- LOGIN -->
+        <div id="s-login" class="screen active">
+            <div class="login-card" style="width: 100%; max-width: 380px; background: #ffffff; border-radius: 28px; padding: 32px 24px; box-shadow: 0 12px 30px rgba(0,0,0,0.06); border: 1px solid #e2e8f0; display: flex; flex-direction: column; align-items: center; margin: auto 0;">
+                
+                <h1 style="font-size: 24px; font-weight: 700; color: #0f172a; letter-spacing: -0.5px; margin-bottom: 4px; font-family: var(--font);">FlotaControl</h1>
+                <p style="font-size: 13px; color: #64748b; margin-bottom: 20px; font-weight: 500; font-family: var(--font);">Mantenimiento vehicular</p>
+                
+                <!-- Toyota Hilux Pickup truck image -->
+                <img src="toyota_hilux_white.png" alt="Toyota Hilux" style="width: 100%; max-width: 210px; height: auto; margin-bottom: 24px; object-fit: contain;">
+                
+                <div class="login-form" style="width: 100%; display: flex; flex-direction: column; gap: 14px;">
+                    
+                    <!-- User Field -->
+                    <div class="form-group" style="gap: 6px;">
+                        <label style="font-size: 11px; font-weight: 700; letter-spacing: 0.5px; color: #475569; display: flex; align-items: center; gap: 6px; font-family: var(--font);">
+                            <svg viewBox="0 0 24 24" style="width: 12px; height: 12px; fill: none; stroke: #0066ff; stroke-width: 2.5;"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                            USUARIO
+                        </label>
+                        <div style="position: relative; width: 100%;">
+                            <svg viewBox="0 0 24 24" style="position: absolute; left: 14px; top: 50%; transform: translateY(-50%); width: 16px; height: 16px; fill: none; stroke: #94a3b8; stroke-width: 2.2;"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                            <input type="text" id="l-user" placeholder="tu usuario" autocomplete="username" autocapitalize="none" style="padding-left: 42px; border-radius: 12px; height: 46px; border: 1px solid #cbd5e1; background: #ffffff; color: #0f172a; width: 100%; font-size: 14px; outline: none;">
+                        </div>
+                    </div>
+                    
+                    <!-- Password Field -->
+                    <div class="form-group" style="gap: 6px;">
+                        <label style="font-size: 11px; font-weight: 700; letter-spacing: 0.5px; color: #475569; display: flex; align-items: center; gap: 6px; font-family: var(--font);">
+                            <svg viewBox="0 0 24 24" style="width: 12px; height: 12px; fill: none; stroke: #0066ff; stroke-width: 2.5;"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+                            CONTRASEÑA
+                        </label>
+                        <div style="position: relative; width: 100%;">
+                            <svg viewBox="0 0 24 24" style="position: absolute; left: 14px; top: 50%; transform: translateY(-50%); width: 16px; height: 16px; fill: none; stroke: #94a3b8; stroke-width: 2.2;"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+                            <input type="password" id="l-pass" placeholder="••••••••" autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()" style="padding-left: 42px; padding-right: 42px; border-radius: 12px; height: 46px; border: 1px solid #cbd5e1; background: #ffffff; color: #0f172a; width: 100%; font-size: 14px; outline: none;">
+                            <!-- Eye icon -->
+                            <div onclick="togglePasswordVisibility()" style="position: absolute; right: 14px; top: 50%; transform: translateY(-50%); cursor: pointer; display: flex; align-items: center;">
+                                <svg id="pass-eye-icon" viewBox="0 0 24 24" style="width: 18px; height: 18px; fill: none; stroke: #94a3b8; stroke-width: 2.2;">
+                                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                                    <circle cx="12" cy="12" r="3"/>
+                                </svg>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <p class="err-msg" id="l-err" style="margin: 0; min-height: 18px; font-weight: 500; font-size: 12px; color: #ef4444; text-align: center;"></p>
+                    
+                    <!-- Login Button -->
+                    <button class="btn btn-primary" id="l-btn" onclick="doLogin()" style="height: 46px; border-radius: 12px; background: #0066ff; display: flex; align-items: center; justify-content: center; gap: 8px; font-weight: 600; font-size: 15px; box-shadow: 0 4px 12px rgba(0, 102, 255, 0.2); border: none; color: #ffffff; cursor: pointer; width: 100%;">
+                        <svg viewBox="0 0 24 24" style="width: 18px; height: 18px; fill: none; stroke: #ffffff; stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round;">
+                            <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4M10 17l5-5-5-5M13.8 12H3"/>
+                        </svg>
+                        Ingresar
+                    </button>
+                    
+                    <div style="text-align: center; margin-top: 2px;">
+                        <span onclick="showToast('Póngase en contacto con su administrador.')" style="font-size: 12px; color: #64748b; text-decoration: none; font-weight: 500; cursor: pointer;">¿Olvidaste tu contraseña?</span>
+                    </div>
+                    
+                    <div style="text-align:center; margin-top:10px; border-top:1px solid #e2e8f0; padding-top:14px">
+                        <button class="btn btn-ghost" onclick="showOperatorScreen()" style="font-size:12px; border-radius: 12px; height: 40px; display:flex; align-items:center; justify-content:center; gap:6px; width:100%; background:#f8fafc; border: 1px solid #e2e8f0; color: #334155; font-weight: 600; cursor: pointer;">
+                            ⛽ ¿Eres Operador? Actualizar KM
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- OPERATOR MILEAGE CAPTURE -->
+        <div id="s-operator" class="screen">
+            <div class="topbar" style="position: relative; overflow: hidden; background: #ffffff; border-bottom: 2px solid #e2e8f0;">
+                <div class="back-btn" onclick="show('s-login')" style="border-radius: 8px; border: 1px solid #e2e8f0; width: 34px; height: 34px; display: flex; align-items: center; justify-content: center; background: #ffffff; cursor: pointer; color: #475569; font-weight: 700; margin-right: 12px; font-size: 14px;">←</div>
+                <h1 style="font-size: 16px; font-weight: 700; color: #0f172a; flex: 1; font-family: var(--font);">Actualizar KM Operador</h1>
+                <!-- Red Slanted Accent -->
+                <div style="background: #d32f2f; width: 80px; height: 100%; position: absolute; right: 0; top: 0; clip-path: polygon(25px 0, 100% 0, 100% 100%, 0 100%); display: flex; align-items: center; justify-content: flex-end; padding-right: 12px; gap: 4px;">
+                    <div style="width: 4px; height: 16px; background: rgba(255,255,255,0.4); transform: skewX(-20deg);"></div>
+                    <div style="width: 4px; height: 16px; background: rgba(255,255,255,0.4); transform: skewX(-20deg);"></div>
+                </div>
+            </div>
+            <div class="content" style="padding: 14px;">
+                <div class="card" style="display:flex; flex-direction:column; gap:14px; border-radius: 16px; padding: 16px; border: 1px solid #e2e8f0; box-shadow: 0 4px 14px rgba(0,0,0,0.03); background: #ffffff; position: relative; overflow: hidden;">
+                    <!-- Red Header Accent Strip -->
+                    <div style="position: absolute; top: 0; left: 0; right: 0; height: 4px; background: #d32f2f;"></div>
+                    
+                    <p style="font-size:12px; color:#64748b; text-align:center; line-height:1.4; margin-top: 4px; font-family: var(--font); font-weight: 500;">
+                        Selecciona tu unidad a cargo para validar tu nombre, e ingresa el kilometraje actual de tu tablero.
+                    </p>
+                    
+                    <!-- UNIDAD Select Dropdown with custom styling & red truck icon prefix -->
+                    <div class="form-group" style="gap: 6px;">
+                        <label style="font-size: 11px; font-weight: 700; letter-spacing: 0.5px; color: #475569; display: flex; align-items: center; gap: 6px; font-family: var(--font);">
+                            UNIDAD
+                        </label>
+                        <div style="position: relative; width: 100%;">
+                            <select id="op-unit" onchange="onOperatorUnitChange()" style="width: 100%; height: 46px; background: #ffffff; border: 1px solid #cbd5e1; border-radius: 12px; color: #0f172a; font-family: var(--font); font-weight: 600; font-size: 14px; padding: 0 16px; outline: none; -webkit-appearance: none; appearance: none; cursor: pointer; box-shadow: 0 1px 2px rgba(0,0,0,0.02);">
+                                <option value="">Selecciona unidad...</option>
+                            </select>
+                            <!-- Chevron icon at right of select -->
+                            <div style="position: absolute; right: 14px; top: 50%; transform: translateY(-50%); pointer-events: none; display: flex; align-items: center;">
+                                <svg viewBox="0 0 24 24" style="width: 16px; height: 16px; fill: none; stroke: #94a3b8; stroke-width: 2.5;"><polyline points="6 9 12 15 18 9"/></svg>
+                            </div>
+                        </div>
+                    </div>
+
+
+
+                    <!-- Operator Dynamic info block styled matching image 2 welcome details -->
+                    <div id="op-info-card" style="display:none; background:#fff5f5; border:1px dashed #fca5a5; border-radius:14px; padding:16px; flex-direction:column; gap:12px; box-shadow: 0 2px 8px rgba(220,38,38,0.02);">
+                        <div id="op-welcome-text" style="font-size:13px; font-weight:700; color:#b91c1c; text-align:center; padding-bottom:8px; line-height:1.4; font-family: var(--font);">
+                            👋 ¡Hola! Bienvenido...
+                        </div>
+                        
+                        <!-- List of details styled exactly like mockup rows -->
+                        <div style="display:flex; justify-content:space-between; align-items:center; font-size:12px; border-top:1px solid rgba(220,38,38,0.1); padding-top:10px; font-family: var(--font);">
+                            <span style="color:#64748b; font-weight:700; font-size:10px; display:flex; align-items:center; gap:6px;">👤 RESPONSABLE</span>
+                            <span id="op-name" style="font-weight:700; color:#0f172a;">—</span>
+                        </div>
+                        <div style="display:flex; justify-content:space-between; align-items:center; font-size:12px; border-top:1px solid rgba(220,38,38,0.1); padding-top:10px; font-family: var(--font);">
+                            <span style="color:#64748b; font-weight:700; font-size:10px; display:flex; align-items:center; gap:6px;">🚗 KM ANTERIOR</span>
+                            <span id="op-km-prev" style="font-weight:700; color:#0f172a; font-family:var(--font);">—</span>
+                        </div>
+                        <div style="display:flex; justify-content:space-between; align-items:center; font-size:12px; border-top:1px solid rgba(220,38,38,0.1); padding-top:10px; font-family: var(--font);">
+                            <span style="color:#64748b; font-weight:700; font-size:10px; display:flex; align-items:center; gap:6px;">🎯 ESTADO ACTUAL</span>
+                            <span id="op-badge-placeholder"></span>
+                        </div>
+                    </div>
+
+                    <!-- KILOMETRAJE ACTUAL Input with premium styled icon -->
+                    <div class="form-group" style="gap: 6px;">
+                        <label style="font-size: 11px; font-weight: 700; letter-spacing: 0.5px; color: #475569; display: flex; align-items: center; gap: 6px; font-family: var(--font);">
+                            KILOMETRAJE ACTUAL (MANUAL)
+                        </label>
+                        <div style="position: relative; width: 100%;">
+                            <!-- Input Icon Prefix -->
+                            <div style="position: absolute; left: 14px; top: 50%; transform: translateY(-50%); pointer-events: none; display: flex; align-items: center; justify-content: center; font-size: 14px; color: #94a3b8;">
+                                ⚙️
+                            </div>
+                            <input type="number" inputmode="numeric" id="op-km-input" placeholder="Ingresa lectura del tablero" style="padding-left: 42px; border-radius: 12px; height: 46px; border: 1px solid #cbd5e1; background: #ffffff; color: #0f172a; width: 100%; font-size: 14px; outline: none; font-family: var(--font); font-weight: 600; box-shadow: inset 0 1px 2px rgba(0,0,0,0.02);">
+                        </div>
+                    </div>
+
+                    <!-- Red Primary Registrar Button -->
+                    <button class="btn btn-primary" id="op-btn" onclick="saveOperatorKM()" style="height: 46px; border-radius: 12px; background: linear-gradient(135deg, #d32f2f 0%, #b91c1c 100%); display: flex; align-items: center; justify-content: center; gap: 8px; font-weight: 600; font-size: 15px; box-shadow: 0 4px 12px rgba(211, 47, 47, 0.2); border: none; color: #ffffff; cursor: pointer; width: 100%; margin-top: 6px;">
+                        ⚙️ Registrar Kilometraje
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- HOME -->
+        <div id="s-home" class="screen">
+            <div class="topbar">
+                <svg style="width:22px;height:22px;stroke:var(--accent);fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round"
+                    viewBox="0 0 24 24">
+                    <rect x="1" y="3" width="15" height="13" rx="2" />
+                    <path d="M16 8h4l3 3v5h-7V8z" />
+                    <circle cx="5.5" cy="18.5" r="2.5" />
+                    <circle cx="18.5" cy="18.5" r="2.5" />
+                </svg>
+                <h1>Unidades</h1>
+                <span class="role-pill" id="role-label">—</span>
+            </div>
+            <!-- Stats strip -->
+            <div style="padding: 12px 16px 8px; background: var(--bg); border-bottom: 1px solid var(--border); flex-shrink: 0;">
+                <div class="stat-grid">
+                    <div class="stat-box">
+                        <div class="label">TOTAL</div>
+                        <div class="value" id="stat-total">—</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="label" id="stat-alerts-label">ALERTAS</div>
+                        <div class="value" id="stat-alerts" style="color:var(--amber)">—</div>
+                    </div>
+                </div>
+            </div>
+            <!-- Chips strip — lives OUTSIDE .content so overflow-y:auto doesn't block horizontal scroll -->
+            <div style="display:flex; gap:8px; flex-wrap:nowrap; overflow-x:auto; padding: 10px 16px; flex-shrink:0; background:var(--bg); -webkit-overflow-scrolling:touch;">
+                <div class="chip active" onclick="setFilter('all',this)">Todas</div>
+                <div class="chip" onclick="setFilter('URGENTE',this)">🔴 Urgente</div>
+                <div class="chip" onclick="setFilter('PROXIMO',this)">🟡 Próximo</div>
+                <div class="chip" onclick="setFilter('AL_DIA',this)">🟢 Al día</div>
+                <div class="chip" onclick="setFilter('SIN_KM',this)">Sin km</div>
+            </div>
+            <div class="content" style="padding-top: 8px;">
+                <div id="unit-list" style="display:flex;flex-direction:column;gap:8px"></div>
+            </div>
+            <div class="nav">
+                <button class="nav-btn active" onclick="showHome()"><svg viewBox="0 0 24 24">
+                        <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
+                        <polyline points="9 22 9 12 15 12 15 22" />
+                    </svg>Inicio</button>
+                <!-- Botón Registrar eliminado -->
+                <button class="nav-btn" onclick="showReports()"><svg viewBox="0 0 24 24">
+                        <line x1="18" y1="20" x2="18" y2="10" />
+                        <line x1="12" y1="20" x2="12" y2="4" />
+                        <line x1="6" y1="20" x2="6" y2="14" />
+                    </svg>Reportes</button>
+                <button class="nav-btn" onclick="logout()"><svg viewBox="0 0 24 24">
+                        <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4" />
+                        <polyline points="16 17 21 12 16 7" />
+                        <line x1="21" y1="12" x2="9" y2="12" />
+                    </svg>Salir</button>
+            </div>
+        </div>
+
+        <!-- DETAIL -->
+        <div id="s-detail" class="screen">
+            <div class="topbar">
+                <div class="back-btn" onclick="showHome()">←</div>
+                <h1 id="det-title">—</h1>
+                <span id="det-badge" class="badge"></span>
+            </div>
+            <div class="content">
+                <div class="stat-grid">
+                    <div class="stat-box">
+                        <div class="label">KM ACTUAL</div>
+                        <div class="value" id="det-km">—</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="label">RESTANTES</div>
+                        <div class="value" id="det-rest">—</div>
+                    </div>
+                </div><div class="card">
+                    <div class="sec-label">PROGRESO DE INTERVALO</div>
+                    <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--muted);margin-bottom:6px">
+                        <span id="det-recorridos"></span><span id="det-pct"></span>
+                    </div>
+                    <div class="km-detail-bar">
+                        <div id="det-bar" class="km-detail-fill"></div>
+                    </div>
+                    <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--muted);font-family:var(--mono);margin-top:4px">
+                        <span>0 km</span><span id="det-intervalo"></span>
+                    </div>
+                </div>
+                <div class="card" style="padding:14px 16px 4px; margin-top:0">
+                    <div id="det-info" style="display:flex;flex-direction:column;gap:0;padding-bottom:10px"></div>
+                </div>
+                <div style="display:flex;flex-direction:column;gap:10px;margin-top:4px">
+                    <button class="btn btn-primary" onclick="showUpdateKM()">📍 Actualizar KM Actual (Semanal)</button>
+                    <button class="btn btn-ghost" onclick="promptAfinacion()">🛠️ Registrar Nueva Afinación</button>
+                </div>
+            </div>
+            <div class="nav">
+                <button class="nav-btn" onclick="showHome()"><svg viewBox="0 0 24 24">
+                        <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
+                        <polyline points="9 22 9 12 15 12 15 22" />
+                    </svg>Inicio</button>
+                <button class="nav-btn active"><svg viewBox="0 0 24 24">
+                        <circle cx="12" cy="12" r="10" />
+                        <line x1="12" y1="16" x2="12" y2="12" />
+                        <line x1="12" y1="8" x2="12.01" y2="8" />
+                    </svg>Detalle</button>
+                <button class="nav-btn" onclick="showReports()"><svg viewBox="0 0 24 24">
+                        <line x1="18" y1="20" x2="18" y2="10" />
+                        <line x1="12" y1="20" x2="12" y2="4" />
+                        <line x1="6" y1="20" x2="6" y2="14" />
+                    </svg>Reportes</button>
+                <button class="nav-btn" onclick="logout()"><svg viewBox="0 0 24 24">
+                        <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4" />
+                        <polyline points="16 17 21 12 16 7" />
+                        <line x1="21" y1="12" x2="9" y2="12" />
+                    </svg>Salir</button>
+            </div>
+        </div>
+
+        <!-- REGISTER -->
+        <div id="s-register" class="screen">
+            <div class="topbar">
+                <div class="back-btn" onclick="showHome()">←</div>
+                <h1>Registrar servicio</h1>
+            </div>
+            <div class="content">
+                <div class="card" style="display:flex;flex-direction:column;gap:14px">
+                    <div class="form-group">
+                        <label>UNIDAD</label>
+                        <select id="f-unit" onchange="autoFillOperator()">
+                            <option value="">Selecciona unidad...</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>TIPO DE SERVICIO</label>
+                        <select id="f-type">
+                            <option>Mantenimiento preventivo</option>
+                            <option>Cambio de aceite</option>
+                            <option>Filtro de aceite</option>
+                            <option>Filtro de aire</option>
+                            <option>Filtro combustible</option>
+                            <option>Frenos</option>
+                            <option>Bujías</option>
+                            <option>Revisión general</option>
+                            <option>Otro</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>KILOMETRAJE ACTUAL</label>
+                        <input type="number" id="f-km" placeholder="Ej: 45200" inputmode="numeric">
+                    </div>
+                    <div class="form-group">
+                        <label>OPERADOR RESPONSABLE</label>
+                        <input type="text" id="f-tech" placeholder="Nombre del operador">
+                    </div>
+                    <div class="form-group">
+                        <label>COSTO (MXN) — opcional</label>
+                        <input type="number" id="f-cost" placeholder="0.00" inputmode="decimal">
+                    </div>
+                    <div class="form-group">
+                        <label>NOTAS</label>
+                        <textarea id="f-notes" rows="2" placeholder="Observaciones..."></textarea>
+                    </div>
+                </div>
+                <div class="card" style="display:flex;flex-direction:column;gap:12px">
+                    <div class="sec-label">CONSUMIBLES USADOS</div>
+                    <div id="consumibles-list" style="display:flex;flex-direction:column;gap:8px"></div>
+                    <button class="btn btn-ghost" onclick="addConsumible()">+ Agregar consumible</button>
+                </div>
+                <button class="btn btn-primary" id="save-btn" onclick="saveService()">Guardar registro</button>
+                <p style="font-size:11px;color:var(--muted);text-align:center;font-family:var(--mono)">Sincroniza con
+                    Google Sheets automáticamente</p>
+            </div>
+            <div class="nav">
+                <button class="nav-btn" onclick="showHome()"><svg viewBox="0 0 24 24">
+                        <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
+                        <polyline points="9 22 9 12 15 12 15 22" />
+                    </svg>Inicio</button>
+                <button class="nav-btn active"><svg viewBox="0 0 24 24">
+                        <circle cx="12" cy="12" r="10" />
+                        <line x1="12" y1="8" x2="12" y2="16" />
+                        <line x1="8" y1="12" x2="16" y2="12" />
+                    </svg>Registrar</button>
+                <button class="nav-btn" onclick="showReports()"><svg viewBox="0 0 24 24">
+                        <line x1="18" y1="20" x2="18" y2="10" />
+                        <line x1="12" y1="20" x2="12" y2="4" />
+                        <line x1="6" y1="20" x2="6" y2="14" />
+                    </svg>Reportes</button>
+                <button class="nav-btn" onclick="logout()"><svg viewBox="0 0 24 24">
+                        <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4" />
+                        <polyline points="16 17 21 12 16 7" />
+                        <line x1="21" y1="12" x2="9" y2="12" />
+                    </svg>Salir</button>
+            </div>
+        </div>
+
+        <!-- REPORTS -->
+        <div id="s-reports" class="screen" style="background:#f8fafc;">
+            <div class="topbar" style="background:#ffffff; border-bottom:1px solid #e2e8f0; padding: 48px 16px 14px; display:flex; align-items:center; justify-content:space-between; gap:10px;">
+                <div style="display:flex; align-items:center; gap:10px;">
+                    <!-- Menu Icon -->
+                    <div style="cursor:pointer; display:flex; align-items:center; padding: 4px;">
+                        <svg viewBox="0 0 24 24" style="width:20px; height:20px; stroke:#475569; fill:none; stroke-width:2.5; stroke-linecap:round;"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+                    </div>
+                    
+                    <!-- Blue square report icon -->
+                    <div style="width:36px; height:36px; border-radius:8px; background:#0066ff; display:flex; align-items:center; justify-content:center;">
+                        <svg viewBox="0 0 24 24" style="width:18px; height:18px; stroke:#ffffff; fill:none; stroke-width:2.5; stroke-linecap:round; stroke-linejoin:round;"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+                    </div>
+                    
+                    <div>
+                        <h1 style="font-size:18px; font-weight:700; color:#0f172a; margin:0; line-height:1.2; font-family:var(--font);">Reportes</h1>
+                        <span style="font-size:11px; color:#64748b; font-weight:500; font-family:var(--font);">Panel de control</span>
+                    </div>
+                </div>
+                
+                <div style="display:flex; align-items:center; gap:8px;">
+                    <!-- Bell icon with blue badge -->
+                    <div style="position:relative; cursor:pointer; width:34px; height:34px; border-radius:50%; background:#f1f5f9; display:flex; align-items:center; justify-content:center;">
+                        <svg viewBox="0 0 24 24" style="width:18px; height:18px; stroke:#475569; fill:none; stroke-width:2.2; stroke-linecap:round; stroke-linejoin:round;"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+                        <!-- Badge number -->
+                        <span id="rep-bell-badge" style="position:absolute; top:-2px; right:-2px; background:#0066ff; color:#ffffff; font-size:9px; font-weight:700; width:15px; height:15px; border-radius:50%; display:flex; align-items:center; justify-content:center; border:2px solid #ffffff;">0</span>
+                    </div>
+                    
+                    <!-- User dropdown pill -->
+                    <div style="display:flex; align-items:center; gap:6px; background:#f1f5f9; border:1px solid #e2e8f0; border-radius:20px; padding:4px 10px; cursor:pointer;">
+                        <svg viewBox="0 0 24 24" style="width:14px; height:14px; fill:none; stroke:#64748b; stroke-width:2.5;"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                        <span id="role-label2" style="font-size:11px; font-weight:600; color:#334155; max-width:80px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-family:var(--font);">—</span>
+                        <svg viewBox="0 0 24 24" style="width:10px; height:10px; fill:none; stroke:#64748b; stroke-width:3; stroke-linecap:round;"><polyline points="6 9 12 15 18 9"/></svg>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="content" style="padding:14px; display:flex; flex-direction:column; gap:12px;">
+
+                <div class="stat-grid" style="display:grid; grid-template-columns: 1.2fr 1fr; gap:12px;">
+                    
+                    <!-- URGENTES CARD -->
+                    <div class="stat-box" style="position:relative; background:#ffffff; border:1px solid #e2e8f0; border-radius:18px; padding:16px; overflow:hidden; min-height:120px; display:flex; flex-direction:column; justify-content:space-between; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.02); border-left: 4px solid var(--red);">
+                        <!-- Background image -->
+                        <div style="position:absolute; right:0; top:0; bottom:0; width:65%; background:url('urgente_bg.png') no-repeat center right; background-size:cover; border-radius:0 17px 17px 0; z-index:1; opacity: 0.85; mask-image: linear-gradient(to left, rgba(0,0,0,1) 50%, rgba(0,0,0,0) 100%); -webkit-mask-image: linear-gradient(to left, rgba(0,0,0,1) 50%, rgba(0,0,0,0) 100%);"></div>
+                        
+                        <div style="position:relative; z-index:2; display:flex; flex-direction:column; height:100%; justify-content:space-between;">
+                            <div>
+                                <div style="font-size:10px; font-weight:700; color:#ef4444; letter-spacing:0.5px; font-family:var(--font);">URGENTES</div>
+                                <div id="rep-urgentes" style="font-size:32px; font-weight:700; color:#0f172a; margin-top:2px;">0</div>
+                            </div>
+                            <div style="font-size:11px; color:#64748b; font-weight:500; margin-top:8px;">Requieren atención inmediata</div>
+                        </div>
+                        
+                        <!-- Absolute Exclamation overlay icon -->
+                        <div style="position:absolute; right:16px; top:50%; transform:translateY(-50%); z-index:2; width:36px; height:36px; border-radius:50%; background:rgba(239, 68, 68, 0.15); border: 2px solid rgba(239, 68, 68, 0.4); display:flex; align-items:center; justify-content:center;">
+                            <svg viewBox="0 0 24 24" style="width:18px; height:18px; stroke:#ef4444; fill:none; stroke-width:3; stroke-linecap:round;"><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                        </div>
+                    </div>
+                    
+                    <!-- PRÓXIMOS CARD -->
+                    <div class="stat-box" style="background:#ffffff; border:1px solid #e2e8f0; border-radius:18px; padding:16px; min-height:120px; display:flex; flex-direction:column; justify-content:space-between; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.02); border-left: 4px solid var(--amber);">
+                        <div style="display:flex; justify-content:space-between; align-items:flex-start; width:100%;">
+                            <div>
+                                <div style="font-size:10px; font-weight:700; color:#f59e0b; letter-spacing:0.5px; font-family:var(--font);">PRÓXIMOS</div>
+                                <div id="rep-proximos" style="font-size:32px; font-weight:700; color:#0f172a; margin-top:2px;">0</div>
+                            </div>
+                            <!-- Calendar Icon -->
+                            <div style="width:36px; height:36px; border-radius:50%; background:rgba(245, 158, 11, 0.1); display:flex; align-items:center; justify-content:center;">
+                                <svg viewBox="0 0 24 24" style="width:18px; height:18px; stroke:#f59e0b; fill:none; stroke-width:2; stroke-linecap:round; stroke-linejoin:round;"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                            </div>
+                        </div>
+                        <div style="font-size:11px; color:#64748b; font-weight:500; margin-top:8px;">Por vencer pronto</div>
+                    </div>
+                </div>
+
+                <!-- Botón bajo demanda — solo visible para Coordinador y Supervisor -->
+                <div id="btn-demanda-wrap" style="display:none; width:100%;">
+                    <div onclick="enviarReporteDemanda()" style="width:100%; background:#ffffff; border:1px solid #e2e8f0; border-radius:18px; padding:14px 16px; display:flex; align-items:center; justify-content:space-between; cursor:pointer; box-shadow:0 4px 6px -1px rgba(0,0,0,0.01); transition: all 0.2s;">
+                        <div style="display:flex; align-items:center; gap:12px;">
+                            <div style="width:36px; height:36px; border-radius:50%; background:#0066ff; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+                                <svg viewBox="0 0 24 24" style="width:16px; height:16px; stroke:#ffffff; fill:none; stroke-width:2.5; stroke-linecap:round; stroke-linejoin:round; transform: rotate(15deg);"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+                            </div>
+                            <div style="text-align:left;">
+                                <div style="font-size:14px; font-weight:700; color:#0f172a; font-family:var(--font);" id="btn-demanda-text">Enviar reporte</div>
+                                <div style="font-size:11px; color:#64748b; font-weight:500; margin-top:2px; font-family:var(--font);">Llega a los 4 correos del equipo</div>
+                            </div>
+                        </div>
+                        <div style="width:28px; height:28px; border-radius:50%; background:#f1f5f9; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+                            <svg viewBox="0 0 24 24" style="width:14px; height:14px; stroke:#0066ff; fill:none; stroke-width:3; stroke-linecap:round; stroke-linejoin:round;"><polyline points="9 18 15 12 9 6"/></svg>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Unified Fleet Card -->
+                <div class="card" style="background:#ffffff; border:1px solid #e2e8f0; border-radius:18px; padding:16px 0; width:100%; display:flex; flex-direction:column; gap:14px; box-shadow:0 4px 6px -1px rgba(0,0,0,0.01);">
+                    <!-- Header & Search Input -->
+                    <div style="display:flex; justify-content:space-between; align-items:center; padding:0 16px; gap:12px;">
+                        <div style="display:flex; align-items:center; gap:10px; flex:1; min-width:0;">
+                            <!-- Blue truck icon -->
+                            <div style="width:36px; height:36px; border-radius:50%; background:rgba(0, 102, 255, 0.08); display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+                                <svg viewBox="0 0 24 24" style="width:18px; height:18px; stroke:#0066ff; fill:none; stroke-width:2.2; stroke-linecap:round; stroke-linejoin:round;">
+                                    <rect x="1" y="3" width="15" height="13" rx="2" />
+                                    <path d="M16 8h4l3 3v5h-7V8z" />
+                                    <circle cx="5.5" cy="18.5" r="2.5" />
+                                    <circle cx="18.5" cy="18.5" r="2.5" />
+                                </svg>
+                            </div>
+                            <div style="flex:1; min-width:0;">
+                                <div style="font-size:14px; font-weight:700; color:#0f172a; font-family:var(--font);">Estado de la flota</div>
+                                <div style="font-size:11px; color:#64748b; font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; margin-top:2px; font-family:var(--font);">Monitorea el estado actual de todos los vehículos</div>
+                            </div>
+                        </div>
+                        
+                        <!-- Search bar -->
+                        <div style="position:relative; width:140px; flex-shrink:0;">
+                            <input type="text" id="fleet-search" oninput="filterFleetList()" placeholder="Buscar vehículo..." style="width:100%; height:32px; border-radius:8px; border:1px solid #cbd5e1; padding:0 8px 0 28px; font-size:12px; background:#f8fafc; outline:none; font-family:var(--font);">
+                            <svg viewBox="0 0 24 24" style="position:absolute; left:8px; top:50%; transform:translateY(-50%); width:12px; height:12px; stroke:#64748b; fill:none; stroke-width:3; stroke-linecap:round;"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                        </div>
+                    </div>
+                    
+                    <div id="rep-fleet" style="display:flex; flex-direction:column; padding: 0 16px;"></div>
+                </div>
+
+                <!-- CONFIGURACION -->
+                <div class="card" style="display:flex;flex-direction:column;gap:12px;background:#ffffff;border:1px solid #e2e8f0;border-radius:18px;box-shadow:0 4px 6px -1px rgba(0,0,0,0.01);" id="coord-settings">
+                    <div class="sec-label" style="font-weight:700;color:#0f172a;font-size:12px;">CONFIGURACIÓN (SOLO COORDINADOR)</div>
+                    <div class="form-group">
+                        <label>INTERVALO DE MANTENIMIENTO (KM)</label>
+                        <input type="number" id="cfg-intervalo" value="5000" placeholder="Ej: 5000" style="border-radius:10px;">
+                    </div>
+                    <button class="btn btn-ghost" onclick="updateGlobalInterval()" style="border-radius:10px;height:42px;display:flex;align-items:center;justify-content:center;">Actualizar para toda la flota</button>
+                </div>
+                
+                <div id="rep-monthly" style="display:flex;flex-direction:column;gap:0;"></div>
+            </div>
+            
+            <div class="nav">
+                <button class="nav-btn" onclick="showHome()"><svg viewBox="0 0 24 24">
+                        <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
+                        <polyline points="9 22 9 12 15 12 15 22" />
+                    </svg>Inicio</button>
+                <button class="nav-btn active"><svg viewBox="0 0 24 24">
+                        <line x1="18" y1="20" x2="18" y2="10" />
+                        <line x1="12" y1="20" x2="12" y2="4" />
+                        <line x1="6" y1="20" x2="6" y2="14" />
+                    </svg>Reportes</button>
+                <button class="nav-btn" onclick="logout()"><svg viewBox="0 0 24 24">
+                        <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4" />
+                        <polyline points="16 17 21 12 16 7" />
+                        <line x1="21" y1="12" x2="9" y2="12" />
+                    </svg>Salir</button>
+            </div>
+        </div>
+
+        <!-- UPDATE KM -->
+        <div id="s-updatekm" class="screen">
+            <div class="topbar">
+                <div class="back-btn" onclick="goBackFromKM()">←</div>
+                <h1 id="ukm-title">Actualizar km</h1>
+            </div>
+            <div class="content">
+                <div class="card" style="background:rgba(59,158,255,.08);border-color:rgba(59,158,255,.25)">
+                    <p style="font-size:13px;color:var(--accent)">📍 Actualiza solo el kilometraje actual sin registrar
+                        un servicio. Útil para la captura inicial o cuando el km cambió pero no hubo mantenimiento.</p>
+                </div>
+                <div id="ukm-single" style="display:none;flex-direction:column;gap:12px">
+                    <div class="card" style="display:flex;flex-direction:column;gap:14px">
+                        <div class="unit-info" style="padding:4px 0">
+                            <div class="uid" id="ukm-unit-label">—</div>
+                            <div class="desc" id="ukm-unit-desc">—</div>
+                        </div>
+                        <div class="form-group">
+                            <label>KILOMETRAJE ACTUAL</label>
+                            <input type="number" id="ukm-km" placeholder="Ej: 45200" inputmode="numeric">
+                        </div>
+                        <button class="btn btn-primary" id="ukm-btn" onclick="saveKM()">Guardar km</button>
+                    </div>
+                </div>
+                <div id="ukm-bulk" style="display:none;flex-direction:column;gap:8px">
+                    <p class="sec-label">CAPTURA MASIVA — toca cada unidad para ingresar su km</p>
+                    <div id="ukm-list" style="display:flex;flex-direction:column;gap:8px"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- SUCCESS -->
+        <div id="s-success" class="screen">
+            <div class="success-wrap">
+                <div class="success-icon"><svg viewBox="0 0 24 24">
+                        <polyline points="20 6 9 17 4 12" />
+                    </svg></div>
+                <p style="font-size:20px;font-weight:600;letter-spacing:-.5px">Servicio registrado</p>
+                <p style="font-size:13px;color:var(--muted);text-align:center">Guardado y sincronizado<br>con Google
+                    Sheets</p>
+                <p id="suc-id" style="font-family:var(--mono);font-size:12px;color:var(--accent)"></p>
+                <button class="btn btn-primary" style="width:200px;margin-top:8px" onclick="showHome()">Volver al
+                    inicio</button>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        const API = "https://script.google.com/macros/s/AKfycbw376Tltkg4bE11VfCtyG6HQ3AhFsgKc6mmvaUUKD_XgJcZ0MfAVLp_N4J-ii_de9U/exec";
+        const ROLES_REPORTE = ["Coordinador", "Supervisor"];
+
+        const USERS = {
+            "gilagor": { nombre: "Gregorio Ilagor", rol: "Coordinador", clave: "Flota2026#G" },
+            "wramos": { nombre: "Williams Ramos", rol: "Supervisor", clave: "Flota2026#S" },
+            "jcontreras": { nombre: "Juan Contreras", rol: "Tecnico", clave: "Flota2026#T1" },
+            "anetro": { nombre: "Alfredo Netro", rol: "Tecnico", clave: "Flota2026#T2" }
+        };
+
+        let currentUser = null; // { usuario, nombre, rol, email }
+        let unidades = [];
+        let currentUnit = null;
+        let filtroActivo = "all";
+        let consumiblesForm = [];
+
+        // ── Utilidades ────────────────────────────────────────────
+        function show(id) {
+            document.querySelectorAll(".screen").forEach(s => s.classList.remove("active"));
+            document.getElementById(id).classList.add("active");
+        }
+        function showToast(msg, dur = 2500) {
+            const t = document.getElementById("toast");
+            t.textContent = msg;
+            t.classList.add("show");
+            setTimeout(() => t.classList.remove("show"), dur);
+        }
+        function loading(on) {
+            document.getElementById("loading").classList.toggle("hide", !on);
+        }
+        function badgeClass(a) {
+            return a === "URGENTE" ? "badge-red" : a === "PROXIMO" ? "badge-amber" : a === "AL_DIA" ? "badge-green" : "badge-muted";
+        }
+        function badgeLabel(a) {
+            return a === "URGENTE" ? "🔴 Urgente" : a === "PROXIMO" ? "🟡 Próximo" : a === "AL_DIA" ? "🟢 Al día" : "Sin km";
+        }
+        function barColor(a) {
+            return a === "URGENTE" ? "var(--red)" : a === "PROXIMO" ? "var(--amber)" : "var(--green)";
+        }
+        function apiParams() {
+            return currentUser ? { usuario: currentUser.usuario, clave: currentUser._clave } : {};
+        }// ── API ───────────────────────────────────────────────────
+        async function apiGet(accion, extra = {}) {
+            const qs = new URLSearchParams({ accion, ...apiParams(), ...extra }).toString();
+            console.log("Petición API:", `${API}?${qs}`);
+            try {
+                const r = await fetch(`${API}?${qs}`);
+                const data = await r.json();
+                console.log("Respuesta API:", data);
+                return data;
+            } catch (e) {
+                console.error("Error en apiGet:", e);
+                throw e;
+            }
+        }
+        async function apiPost(body) {
+            const r = await fetch(API, { method: "POST", body: JSON.stringify({ ...body, ...apiParams() }) });
+            return r.json();
+        }
+
+        // ── Login ─────────────────────────────────────────────────
+        async function doLogin() {
+            const usuario = document.getElementById("l-user").value.trim();
+            const clave = document.getElementById("l-pass").value;
+            const errEl = document.getElementById("l-err");
+            const btn = document.getElementById("l-btn");
+            if (!usuario || !clave) { errEl.textContent = "Ingresa usuario y contraseña"; return; }
+            errEl.textContent = "";
+            btn.textContent = "Verificando...";
+            btn.disabled = true;
+            loading(true);
+            try {
+                let res;
+                const local = USERS[usuario];
+
+                if (local && local.clave === clave) {
+                    // Login local exitoso
+                    res = { ok: true, usuario, rol: local.rol, nombre: local.nombre };
+                } else {
+                    // Intento vía API si no coincide localmente
+                    const qs = new URLSearchParams({ accion: "login", usuario, clave }).toString();
+                    res = await fetch(`${API}?${qs}`).then(r => r.json());
+                }
+
+                if (res.ok) {
+                    currentUser = { ...res, _clave: clave };
+                    document.getElementById("role-label").textContent = res.rol;
+                    document.getElementById("role-label2").textContent = res.rol;
+                    document.getElementById("btn-demanda-wrap").style.display =
+                        ROLES_REPORTE.includes(res.rol) ? "flex" : "none";
+                    document.getElementById("coord-settings").style.display =
+                        res.rol === "Coordinador" ? "flex" : "none";
+                    await showHome();
+                } else {
+                    errEl.textContent = res.error || "Usuario o clave incorrectos";
+                }
+            } catch (e) {
+                errEl.textContent = "Error de conexión. Verifica tu internet.";
+            }
+            loading(false);
+            btn.textContent = "Ingresar";
+            btn.disabled = false;
+        }
+
+        function logout() {
+            currentUser = null; unidades = []; currentUnit = null;
+            document.getElementById("l-user").value = "";
+            document.getElementById("l-pass").value = "";
+            document.getElementById("l-err").textContent = "";
+            show("s-login");
+        }
+
+        // ── Home ──────────────────────────────────────────────────
+        async function showHome() {
+            show("s-home");
+            loading(true);
+            try {
+                unidades = await apiGet("unidades");
+                // Recalcular alertas y porcentaje según el nuevo semáforo
+                unidades.forEach(u => {
+                    if (u.km_actual === 0 || !u.km_actual || u.km_actual === "") {
+                        u.alerta = "SIN_KM";
+                        u.pct_uso = 0;
+                        u.restantes = 0;
+                    } else {
+                        const rec = u.recorridos || 0;
+                        const int = u.intervalo || 5000;
+                        u.pct_uso = (rec / int) * 100;
+                        u.restantes = int - rec;
+                        if (u.pct_uso <= 60) {
+                            u.alerta = "AL_DIA";
+                        } else if (u.pct_uso <= 100) {
+                            u.alerta = "PROXIMO";
+                        } else {
+                            u.alerta = "URGENTE";
+                        }
+                    }
+                });
+                renderUnidades();
+            } catch (e) { showToast("Error al cargar unidades"); }
+            loading(false);
+        }
+
+        function setFilter(f, el) {
+            filtroActivo = f;
+            document.querySelectorAll(".chip").forEach(c => c.classList.remove("active"));
+            el.classList.add("active");
+            renderUnidades();
+        }
+
+        function renderUnidades() {
+            const filtered = filtroActivo === "all" ? unidades : unidades.filter(u => u.alerta === filtroActivo);
+            document.getElementById("stat-total").textContent = unidades.length;
+
+            // Dynamic second stat box based on active filter
+            const labelEl  = document.getElementById("stat-alerts-label");
+            const valueEl  = document.getElementById("stat-alerts");
+            if (filtroActivo === "all") {
+                const alerts = unidades.filter(u => u.alerta === "URGENTE" || u.alerta === "PROXIMO").length;
+                labelEl.textContent  = "ALERTAS";
+                valueEl.textContent  = alerts;
+                valueEl.style.color  = "var(--amber)";
+            } else if (filtroActivo === "URGENTE") {
+                labelEl.textContent  = "URGENTE";
+                valueEl.textContent  = filtered.length;
+                valueEl.style.color  = "var(--red)";
+            } else if (filtroActivo === "PROXIMO") {
+                labelEl.textContent  = "PRÓXIMO";
+                valueEl.textContent  = filtered.length;
+                valueEl.style.color  = "var(--amber)";
+            } else if (filtroActivo === "AL_DIA") {
+                labelEl.textContent  = "AL DÍA";
+                valueEl.textContent  = filtered.length;
+                valueEl.style.color  = "var(--green)";
+            } else if (filtroActivo === "SIN_KM") {
+                labelEl.textContent  = "SIN KM";
+                valueEl.textContent  = filtered.length;
+                valueEl.style.color  = "var(--muted)";
+            }
+            const list = document.getElementById("unit-list");
+            if (!filtered.length) {
+                list.innerHTML = `<div style="text-align:center;padding:32px;color:var(--muted);font-size:13px">Sin unidades en este filtro</div>`;
+                return;
+            }
+            list.innerHTML = filtered.map(u => {
+                const unitNum = u.id.replace("U-", "");
+                
+                let badgeBg, badgeColor, badgeDotColor, labelText, barColorVal;
+                if (u.alerta === "AL_DIA") {
+                    badgeBg = "#ecfdf5"; badgeColor = "#065f46"; badgeDotColor = "#10b981"; barColorVal = "#10b981"; labelText = "Al día";
+                } else if (u.alerta === "PROXIMO") {
+                    badgeBg = "#fffbeb"; badgeColor = "#92400e"; badgeDotColor = "#f59e0b"; barColorVal = "#f59e0b"; labelText = "Próximo";
+                } else if (u.alerta === "URGENTE") {
+                    badgeBg = "#fef2f2"; badgeColor = "#991b1b"; badgeDotColor = "#ef4444"; barColorVal = "#ef4444"; labelText = "Urgente";
+                } else {
+                    badgeBg = "#f1f5f9"; badgeColor = "#475569"; badgeDotColor = "#64748b"; barColorVal = "#cbd5e1"; labelText = "Sin km";
+                }
+                
+                const pct = Math.min(100, u.pct_uso || 0);
+                
+                return `
+                    <div class="fleet-row" onclick="openUnit('${u.id}')" style="display:flex; align-items:center; gap:12px; padding:12px 10px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--bg2); cursor:pointer;">
+                        <!-- Truck Image -->
+                        <img src="toyota_hilux_white.png" alt="Truck" style="width:44px; height:auto; object-fit:contain; flex-shrink:0;">
+                        
+                        <!-- Unit Blue ID Pill -->
+                        <div style="background:#f0f7ff; color:#0066ff; font-weight:700; font-size:11px; width:38px; height:24px; border-radius:6px; display:flex; align-items:center; justify-content:center; flex-shrink:0; font-family:var(--font);">
+                            ${unitNum}
+                        </div>
+                        
+                        <!-- Vehicle Details & Progress Bar -->
+                        <div style="flex:1; min-width:0; display:flex; flex-direction:column; gap:2px;">
+                            <div style="font-size:13px; font-weight:700; color:#0f172a; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; font-family:var(--font);">
+                                ${u.id} — ${u.descripcion}
+                            </div>
+                            <div style="font-size:11px; color:#64748b; font-weight:500; font-family:var(--font);">
+                                ${u.responsable || "Sin asignar"}
+                            </div>
+                            <div style="height:4px; border-radius:2px; background:#f1f5f9; margin-top:4px; overflow:hidden; width:100%;">
+                                <div style="height:100%; border-radius:2px; width:${pct}%; background:${barColorVal};"></div>
+                            </div>
+                        </div>
+                        
+                        <!-- Status & Chevron -->
+                        <div style="display:flex; align-items:center; gap:8px; flex-shrink:0;">
+                            <div style="background:${badgeBg}; color:${badgeColor}; font-size:10px; font-weight:700; padding:4px 8px; border-radius:12px; display:flex; align-items:center; gap:4px; white-space:nowrap; font-family:var(--font);">
+                                <span style="font-size:12px; line-height:1; color:${badgeDotColor};">●</span> ${labelText}
+                            </div>
+                            <svg viewBox="0 0 24 24" style="width:14px; height:14px; stroke:#94a3b8; fill:none; stroke-width:3; stroke-linecap:round; flex-shrink:0;"><polyline points="9 18 15 12 9 6"/></svg>
+                        </div>
+                    </div>
+                `;
+            }).join("");
+        }
+
+        // ── Detail ────────────────────────────────────────────────
+        async function openUnit(id) {
+            currentUnit = unidades.find(u => u.id === id);
+            if (!currentUnit) return;
+            show("s-detail");
+            const u = currentUnit;
+            const pct = Math.min(100, u.pct_uso || 0);
+            document.getElementById("det-title").textContent = u.id;
+            document.getElementById("det-km").textContent = u.km_actual > 0 ? u.km_actual.toLocaleString() : "—";
+            document.getElementById("det-rest").textContent = u.km_actual > 0 ? (u.restantes > 0 ? u.restantes.toLocaleString() : "Vencido") : "—";
+            const badge = document.getElementById("det-badge");
+            badge.className = "badge " + badgeClass(u.alerta);
+            badge.textContent = badgeLabel(u.alerta);
+            document.getElementById("det-recorridos").textContent = `${(u.recorridos||0).toLocaleString()} km recorridos`;
+            document.getElementById("det-pct").textContent = `${pct.toFixed(0)}%`;
+            document.getElementById("det-bar").style.width = pct + "%";
+            document.getElementById("det-bar").style.background = barColor(u.alerta);
+            document.getElementById("det-intervalo").textContent = (u.intervalo||5000).toLocaleString() + " km";
+            document.getElementById("det-info").innerHTML = [
+                ["Descripción", u.descripcion],
+                ["Responsable", u.responsable || "Sin asignar"],
+                ["Última Fecha Afinación", u.fecha_aceite || "Sin registro"],
+                ["Intervalo Global", (u.intervalo||5000).toLocaleString() + " km"],
+            ].map(([k, v]) => `<div style="display:flex;justify-content:space-between;font-size:13px;padding:7px 0;border-bottom:1px solid var(--border)">
+    <span style="color:var(--muted);font-family:var(--mono);font-size:11px">${k}</span>
+    <span style="font-weight:500">${v}</span></div>`).join("");
+        }
+
+
+
+        // ── Register ──────────────────────────────────────────────
+        function showRegister() {
+            consumiblesForm = [];
+            renderConsumibles();
+            const sel = document.getElementById("f-unit");
+            sel.innerHTML = '<option value="">Selecciona unidad...</option>' +
+                unidades.map(u => `<option value="${u.id}">${u.id} — ${u.descripcion}</option>`).join("");
+            document.getElementById("f-km").value = "";
+            document.getElementById("f-tech").value = ""; // Se llenará al seleccionar unidad
+            document.getElementById("f-cost").value = "";
+            document.getElementById("f-notes").value = "";
+            show("s-register");
+        }
+
+        function autoFillOperator() {
+            const unitId = document.getElementById("f-unit").value;
+            const unit = unidades.find(u => u.id === unitId);
+            if (unit) {
+                document.getElementById("f-tech").value = unit.responsable === "Sin asignar" ? "" : unit.responsable;
+            } else {
+                document.getElementById("f-tech").value = "";
+            }
+        }
+        function showRegisterForUnit() {
+            showRegister();
+            if (currentUnit) document.getElementById("f-unit").value = currentUnit.id;
+        }
+        function addConsumible() {
+            consumiblesForm.push({ producto: "", marca: "", cantidad: "", unidad_med: "Litros", costo_unit: "" });
+            renderConsumibles();
+        }
+        function renderConsumibles() {
+            document.getElementById("consumibles-list").innerHTML = consumiblesForm.map((c, i) => `
+    <div class="card-sm" style="display:flex;flex-direction:column;gap:8px">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <span style="font-size:11px;font-family:var(--mono);color:var(--muted)">CONSUMIBLE ${i + 1}</span>
+        <span onclick="removeConsumible(${i})" style="color:var(--red);font-size:20px;cursor:pointer;line-height:1">×</span>
+      </div>
+      <input type="text" placeholder="Producto (ej: Aceite 5W-30)" value="${c.producto}"
+        oninput="consumiblesForm[${i}].producto=this.value"
+        style="background:var(--bg2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:var(--font);font-size:13px;padding:8px 10px;outline:none;width:100%">
+      <div style="display:flex;gap:8px">
+        <input type="text" placeholder="Marca" value="${c.marca}"
+          oninput="consumiblesForm[${i}].marca=this.value"
+          style="flex:1;background:var(--bg2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:var(--font);font-size:13px;padding:8px 10px;outline:none">
+        <input type="number" placeholder="Cant." value="${c.cantidad}"
+          oninput="consumiblesForm[${i}].cantidad=this.value" inputmode="decimal"
+          style="width:68px;background:var(--bg2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:var(--font);font-size:13px;padding:8px 10px;outline:none">
+        <select oninput="consumiblesForm[${i}].unidad_med=this.value"
+          style="background:var(--bg2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:var(--font);font-size:13px;padding:8px 6px;outline:none">
+          ${["Litros", "Piezas", "Juego", "Kg", "Cuartos"].map(o => `<option${o === c.unidad_med ? " selected" : ""}>${o}</option>`).join("")}
+        </select>
+      </div>
+    </div>`).join("");
+        }
+        function removeConsumible(i) { consumiblesForm.splice(i, 1); renderConsumibles(); }
+
+        async function saveService() {
+            const unit = document.getElementById("f-unit").value;
+            const km = document.getElementById("f-km").value;
+            if (!unit) { showToast("Selecciona una unidad"); return; }
+            if (!km) { showToast("Ingresa el kilometraje"); return; }
+            const btn = document.getElementById("save-btn");
+            btn.textContent = "Guardando..."; btn.disabled = true;
+            loading(true);
+            try {
+                const res = await apiPost({
+                    accion: "registrar_servicio", id_unidad: unit,
+                    tipo: document.getElementById("f-type").value,
+                    km: parseInt(km),
+                    tecnico: document.getElementById("f-tech").value,
+                    costo: document.getElementById("f-cost").value || "",
+                    notas: document.getElementById("f-notes").value || "",
+                    consumibles: consumiblesForm.filter(c => c.producto)
+                });
+                if (res.ok) {
+                    document.getElementById("suc-id").textContent = res.id_servicio;
+                    const u = unidades.find(x => x.id === unit);
+                    if (u) u.km_actual = parseInt(km);
+                    show("s-success");
+                } else { showToast("Error: " + (res.error || "desconocido")); }
+            } catch (e) { showToast("Error de conexión"); }
+            loading(false);
+            btn.textContent = "Guardar registro"; btn.disabled = false;
+        }
+
+        // ── Reports ───────────────────────────────────────────────
+        async function showReports() {
+            show("s-reports");
+            loading(true);
+            try {
+                if (!unidades.length) unidades = await apiGet("unidades");
+
+                // Recalcular alertas y porcentaje según el nuevo semáforo
+                unidades.forEach(u => {
+                    if (u.km_actual === 0 || !u.km_actual || u.km_actual === "") {
+                        u.alerta = "SIN_KM";
+                        u.pct_uso = 0;
+                        u.restantes = 0;
+                    } else {
+                        const rec = u.recorridos || 0;
+                        const int = u.intervalo || 5000;
+                        u.pct_uso = (rec / int) * 100;
+                        u.restantes = int - rec;
+                        if (u.pct_uso <= 60) {
+                            u.alerta = "AL_DIA";
+                        } else if (u.pct_uso <= 100) {
+                            u.alerta = "PROXIMO";
+                        } else {
+                            u.alerta = "URGENTE";
+                        }
+                    }
+                });
+
+                // Prefiltrar el input del intervalo global con el valor actual del servidor
+                if (unidades.length) {
+                    document.getElementById("cfg-intervalo").value = unidades[0].intervalo || 5000;
+                }
+
+                const urgentes = unidades.filter(u => u.alerta === "URGENTE");
+                const proximos = unidades.filter(u => u.alerta === "PROXIMO");
+
+                document.getElementById("rep-urgentes").textContent = urgentes.length;
+                document.getElementById("rep-proximos").textContent = proximos.length;
+                
+                // Dynamic notification bell badge
+                const alertsCount = urgentes.length + proximos.length;
+                document.getElementById("rep-bell-badge").textContent = alertsCount;
+
+                // Sort units: URGENTE first, then PROXIMO, then AL_DIA, then SIN_KM
+                const sortedUnidades = [...unidades].sort((a, b) => {
+                    const weight = { "URGENTE": 1, "PROXIMO": 2, "AL_DIA": 3, "SIN_KM": 4 };
+                    return (weight[a.alerta] || 5) - (weight[b.alerta] || 5);
+                });
+
+                const repFleetEl = document.getElementById("rep-fleet");
+                repFleetEl.innerHTML = sortedUnidades.map(u => {
+                    const unitNum = u.id.replace("U-", "");
+                    
+                    let badgeBg, badgeColor, badgeDotColor, labelText, barColor;
+                    if (u.alerta === "AL_DIA") {
+                        badgeBg = "#ecfdf5"; badgeColor = "#065f46"; badgeDotColor = "#10b981"; barColor = "#10b981"; labelText = "Al día";
+                    } else if (u.alerta === "PROXIMO") {
+                        badgeBg = "#fffbeb"; badgeColor = "#92400e"; badgeDotColor = "#f59e0b"; barColor = "#f59e0b"; labelText = "Próximo";
+                    } else if (u.alerta === "URGENTE") {
+                        badgeBg = "#fef2f2"; badgeColor = "#991b1b"; badgeDotColor = "#ef4444"; barColor = "#ef4444"; labelText = "Urgente";
+                    } else {
+                        badgeBg = "#f1f5f9"; badgeColor = "#475569"; badgeDotColor = "#64748b"; barColor = "#cbd5e1"; labelText = "Sin km";
+                    }
+                    
+                    const pct = Math.min(100, u.pct_uso || 0);
+                    const searchableText = `${u.id} ${u.descripcion} ${u.responsable}`.toLowerCase();
+                    
+                    return `
+                        <div class="fleet-row" onclick="openUnit('${u.id}')" data-search="${searchableText}" style="display:flex; align-items:center; gap:12px; padding:12px 0; border-bottom:1px solid #f1f5f9; cursor:pointer;">
+                            <!-- Truck Image -->
+                            <img src="toyota_hilux_white.png" alt="Truck" style="width:44px; height:auto; object-fit:contain; flex-shrink:0;">
+                            
+                            <!-- Unit Blue ID Pill -->
+                            <div style="background:#f0f7ff; color:#0066ff; font-weight:700; font-size:11px; width:38px; height:24px; border-radius:6px; display:flex; align-items:center; justify-content:center; flex-shrink:0; font-family:var(--font);">
+                                ${unitNum}
+                            </div>
+                            
+                            <!-- Vehicle Details & Progress Bar -->
+                            <div style="flex:1; min-width:0; display:flex; flex-direction:column; gap:2px;">
+                                <div style="font-size:13px; font-weight:700; color:#0f172a; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; font-family:var(--font);">
+                                    ${u.id} — ${u.descripcion}
+                                </div>
+                                <div style="font-size:11px; color:#64748b; font-weight:500; font-family:var(--font);">
+                                    ${u.responsable || "Sin asignar"}
+                                </div>
+                                <div style="height:4px; border-radius:2px; background:#f1f5f9; margin-top:4px; overflow:hidden; width:100%;">
+                                    <div style="height:100%; border-radius:2px; width:${pct}%; background:${barColor};"></div>
+                                </div>
+                            </div>
+                            
+                            <!-- Status & Chevron -->
+                            <div style="display:flex; align-items:center; gap:8px; flex-shrink:0;">
+                                <div style="background:${badgeBg}; color:${badgeColor}; font-size:10px; font-weight:700; padding:4px 8px; border-radius:12px; display:flex; align-items:center; gap:4px; white-space:nowrap; font-family:var(--font);">
+                                    <span style="font-size:12px; line-height:1; color:${badgeDotColor};">●</span> ${labelText}
+                                </div>
+                                <svg viewBox="0 0 24 24" style="width:14px; height:14px; stroke:#94a3b8; fill:none; stroke-width:3; stroke-linecap:round; flex-shrink:0;"><polyline points="9 18 15 12 9 6"/></svg>
+                            </div>
+                        </div>
+                    `;
+                }).join("");
+                
+                // Clear search bar
+                document.getElementById("fleet-search").value = "";
+            } catch (e) { showToast("Error al cargar reportes"); }
+            loading(false);
+        }
+
+        async function loadMonthReport() {
+            const mes = document.getElementById("rep-mes").value;
+            const anio = document.getElementById("rep-anio").value;
+            loading(true);
+            try {
+                const res = await apiGet("reporte_mensual", { mes, anio });
+                const el = document.getElementById("rep-monthly");
+                el.innerHTML = !res.servicios?.length
+                    ? `<div style="color:var(--muted);font-size:12px;padding:10px 0;font-family:var(--mono)">Sin servicios en este período</div>`
+                    : `<div style="font-size:12px;color:var(--muted);font-family:var(--mono);padding:8px 0">${res.total} servicio(s)</div>` +
+                    res.servicios.map(s => `
+          <div class="rep-row">
+            <div><p>${s.id_unidad} — ${s.tipo}</p><span>${s.fecha} · ${s.tecnico || "—"}</span></div>
+            <span style="font-family:var(--mono);font-size:11px;color:var(--muted)">${s.km ? s.km.toLocaleString() + " km" : ""}</span>
+          </div>`).join("");
+            } catch (e) { showToast("Error al cargar reporte"); }
+            loading(false);
+        }
+
+        // Reporte bajo demanda
+        async function enviarReporteDemanda() {
+            console.log("🖱️ [CLICK] Se presionó el botón de Enviar reporte");
+            const textEl = document.getElementById("btn-demanda-text");
+            const wrapEl = document.getElementById("btn-demanda-wrap");
+            if (!textEl || !wrapEl) {
+                console.error("❌ Elementos del botón no encontrados en el DOM");
+                return;
+            }
+            textEl.textContent = "Enviando...";
+            wrapEl.style.pointerEvents = "none";
+            wrapEl.style.opacity = "0.6";
+            loading(true);
+            try {
+                console.log("📤 Enviando petición POST a:", API);
+                const params = apiParams();
+                console.log("📦 Parámetros enviados:", JSON.stringify({ accion: "reporte_demanda", ...params }));
+                
+                const r = await fetch(API, { 
+                    method: "POST", 
+                    body: JSON.stringify({ accion: "reporte_demanda", ...params }) 
+                });
+                
+                console.log("📥 Petición HTTP completada. Status:", r.status);
+                const res = await r.json();
+                console.log("🔍 Respuesta parseada del servidor:", JSON.stringify(res));
+                
+                if (res.ok) {
+                    showToast("✅ " + (res.mensaje || "Reporte enviado correctamente"), 3500);
+                } else {
+                    showToast("❌ Error del servidor: " + (res.error || JSON.stringify(res)), 5000);
+                }
+            } catch (e) {
+                console.error("❌ Error en enviarReporteDemanda:", e);
+                showToast("Error de conexión: " + e.message, 4000);
+            }
+            loading(false);
+            textEl.textContent = "Enviar reporte";
+            wrapEl.style.pointerEvents = "";
+            wrapEl.style.opacity = "";
+        }
+
+        // ── Update KM ─────────────────────────────────────────────
+        let kmFromDetail = false;
+
+        function showUpdateKM() {
+            // Desde detalle de una unidad específica
+            kmFromDetail = true;
+            const u = currentUnit;
+            document.getElementById("ukm-title").textContent = u.id + " — Actualizar km";
+            document.getElementById("ukm-unit-label").textContent = u.id;
+            document.getElementById("ukm-unit-desc").textContent = u.descripcion + " · " + (u.responsable || "Sin asignar");
+            document.getElementById("ukm-km").value = u.km_actual > 0 ? u.km_actual : "";
+            document.getElementById("ukm-single").style.display = "flex";
+            document.getElementById("ukm-bulk").style.display = "none";
+            show("s-updatekm");
+        }
+
+        function showBulkKM() {
+            // Desde reportes — captura masiva
+            kmFromDetail = false;
+            document.getElementById("ukm-title").textContent = "Captura masiva de km";
+            document.getElementById("ukm-single").style.display = "none";
+            document.getElementById("ukm-bulk").style.display = "flex";
+            const sinKM = unidades.filter(u => !u.km_actual || u.km_actual === 0);
+            const conKM = unidades.filter(u => u.km_actual > 0);
+            const lista = [...sinKM, ...conKM]; // primero los que no tienen km
+            document.getElementById("ukm-list").innerHTML = lista.map(u => `
+    <div class="card" style="display:flex;align-items:center;gap:12px;padding:12px 14px">
+      <div class="unit-avatar" style="width:38px;height:38px;font-size:11px">${u.id.replace("U-", "")}</div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:13px;font-weight:600">${u.id}</div>
+        <div style="font-size:11px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${u.descripcion}</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:6px">
+        <input type="number" inputmode="numeric" placeholder="km" id="bulk-${u.id}"
+          value="${u.km_actual > 0 ? u.km_actual : ''}"
+          style="width:90px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:var(--mono);font-size:13px;padding:7px 10px;outline:none;text-align:right"
+          onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'">
+        <button onclick="saveBulkKM('${u.id}')" style="width:34px;height:34px;border-radius:8px;border:none;background:var(--accent);color:#fff;font-size:16px;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center">✓</button>
+      </div>
+    </div>`).join("");
+            show("s-updatekm");
+        }
+
+        function goBackFromKM() {
+            if (kmFromDetail && currentUnit) {
+                show("s-detail");
+            } else {
+                showReports();
+            }
+        }
+
+        function updateLocalUnitKM(u, newKM) {
+            const prevKM = u.km_actual || 0;
+            const prevRec = u.recorridos || 0;
+            u.km_actual = newKM;
+            // Calculate last service mileage dynamically:
+            const lastServiceKM = prevKM > 0 ? (prevKM - prevRec) : newKM;
+            u.recorridos = Math.max(0, newKM - lastServiceKM);
+            u.restantes = (u.intervalo || 5000) - u.recorridos;
+            u.pct_uso = (u.recorridos / (u.intervalo || 5000)) * 100;
+            
+            if (u.pct_uso <= 60) {
+                u.alerta = "AL_DIA";
+            } else if (u.pct_uso <= 100) {
+                u.alerta = "PROXIMO";
+            } else {
+                u.alerta = "URGENTE";
+            }
+        }
+
+        async function saveKM() {
+            const km = document.getElementById("ukm-km").value;
+            if (!km) { showToast("Ingresa el kilometraje"); return; }
+            const btn = document.getElementById("ukm-btn");
+            btn.textContent = "Guardando..."; btn.disabled = true;
+            loading(true);
+            try {
+                const res = await apiPost({ accion: "actualizar_km", id_unidad: currentUnit.id, km: parseInt(km) });
+                if (res.ok) {
+                    updateLocalUnitKM(currentUnit, parseInt(km));
+                    const u = unidades.find(x => x.id === currentUnit.id);
+                    if (u) updateLocalUnitKM(u, parseInt(km));
+                    showToast("✅ Km actualizado correctamente");
+                    setTimeout(() => { show("s-detail"); openUnit(currentUnit.id); }, 1200);
+                } else { showToast("Error: " + (res.error || "desconocido")); }
+            } catch (e) { showToast("Error de conexión"); }
+            loading(false);
+            btn.textContent = "Guardar km"; btn.disabled = false;
+        }
+
+        async function saveBulkKM(idUnidad) {
+            const input = document.getElementById("bulk-" + idUnidad);
+            const km = input?.value;
+            if (!km) { showToast("Ingresa el km de " + idUnidad); return; }
+            input.style.borderColor = "var(--amber)";
+            try {
+                const res = await apiPost({ accion: "actualizar_km", id_unidad: idUnidad, km: parseInt(km) });
+                if (res.ok) {
+                    input.style.borderColor = "var(--green)";
+                    const u = unidades.find(x => x.id === idUnidad);
+                    if (u) {
+                        updateLocalUnitKM(u, parseInt(km));
+                    }
+                    showToast("✅ " + idUnidad + " — " + parseInt(km).toLocaleString() + " km");
+                } else {
+                    input.style.borderColor = "var(--red)";
+                    showToast("Error en " + idUnidad);
+                }
+            } catch (e) {
+                input.style.borderColor = "var(--red)";
+                showToast("Error de conexión");
+            }
+        }
+
+        async function promptAfinacion() {
+            const km = prompt("1. Ingresa el KILOMETRAJE de la afinación:", currentUnit.km_actual);
+            if (!km) return;
+
+            const hoy = new Date();
+            const fechaDefecto = `${hoy.getDate().toString().padStart(2, '0')}/${(hoy.getMonth() + 1).toString().padStart(2, '0')}/${hoy.getFullYear()}`;
+            const fecha = prompt("2. Ingresa la FECHA de la afinación (DD/MM/AAAA):", fechaDefecto);
+            if (!fecha) return;
+
+            const nKm = parseInt(km);
+            if (isNaN(nKm)) return alert("Kilometraje inválido");
+
+            loading(true);
+            try {
+                const res = await apiPost({
+                    accion: "registrar_afinacion",
+                    id_unidad: currentUnit.id,
+                    km: nKm,
+                    fecha: fecha
+                });
+                if (res.ok) {
+                    showToast("✅ Afinación registrada correctamente");
+                    await showHome();
+                    openUnit(currentUnit.id);
+                } else {
+                    alert("⚠️ Error al guardar: " + (res.error || "No se pudo actualizar la fila"));
+                }
+            } catch (e) { showToast("Error de conexión"); }
+            loading(false);
+        }
+
+        async function updateGlobalInterval() {
+            const km = document.getElementById("cfg-intervalo").value;
+            if (!km) return;
+            loading(true);
+            try {
+                const res = await apiPost({ accion: "ajustar_intervalo", nuevo_intervalo: parseInt(km) });
+                if (res.ok) {
+                    showToast("✅ Intervalo global actualizado a " + km + " km");
+                    await showHome();
+                    await showReports();
+                }
+            } catch (e) { showToast("Error de conexión"); }
+            loading(false);
+        }
+
+        // ── Operator Mileage Logging ───────────────────────────────
+
+        async function showOperatorScreen() {
+            show("s-operator");
+            loading(true);
+            try {
+                // Fetch units dynamically without requiring full log in
+                unidades = await apiGet("unidades");
+                // Recalculate alerts and percentage in real-time
+                unidades.forEach(u => {
+                    if (u.km_actual === 0 || !u.km_actual || u.km_actual === "") {
+                        u.alerta = "SIN_KM";
+                        u.pct_uso = 0;
+                        u.restantes = 0;
+                    } else {
+                        const rec = u.recorridos || 0;
+                        const int = u.intervalo || 5000;
+                        u.pct_uso = (rec / int) * 100;
+                        u.restantes = int - rec;
+                        if (u.pct_uso <= 60) {
+                            u.alerta = "AL_DIA";
+                        } else if (u.pct_uso <= 100) {
+                            u.alerta = "PROXIMO";
+                        } else {
+                            u.alerta = "URGENTE";
+                        }
+                    }
+                });
+
+                const select = document.getElementById("op-unit");
+                select.innerHTML = '<option value="">Selecciona unidad...</option>' + 
+                    unidades.map(u => `<option value="${u.id}">${u.id} — ${u.descripcion}</option>`).join("");
+                
+                document.getElementById("op-info-card").style.display = "none";
+                document.getElementById("op-km-input").value = "";
+            } catch (e) {
+                showToast("Error al cargar lista de unidades");
+            }
+            loading(false);
+        }
+
+        function onOperatorUnitChange() {
+            const select = document.getElementById("op-unit");
+            const id = select.value;
+            const card = document.getElementById("op-info-card");
+            if (!id) {
+                card.style.display = "none";
+                return;
+            }
+
+            const u = unidades.find(x => x.id === id);
+            if (!u) return;
+
+            const name = u.responsable || "Operador";
+            document.getElementById("op-welcome-text").innerHTML = `👋 ¡Hola!<br>Bienvenido <strong>${name}</strong>,<br>agradecemos tu cooperación.`;
+            document.getElementById("op-name").textContent = name;
+            document.getElementById("op-km-prev").textContent = u.km_actual > 0 ? u.km_actual.toLocaleString() + " km" : "Sin registro";
+            
+            const badgePlaceholder = document.getElementById("op-badge-placeholder");
+            badgePlaceholder.innerHTML = `<span class="badge ${badgeClass(u.alerta)}" style="font-size:10px">${badgeLabel(u.alerta)}</span>`;
+            
+            card.style.display = "flex";
+            
+            const input = document.getElementById("op-km-input");
+            input.value = "";
+            input.placeholder = u.km_actual > 0 ? `Mayor a ${u.km_actual}` : "Ingresa km actual";
+            input.focus();
+        }
+
+        async function saveOperatorKM() {
+            const select = document.getElementById("op-unit");
+            const id = select.value;
+            if (!id) { showToast("Selecciona tu unidad"); return; }
+
+            const u = unidades.find(x => x.id === id);
+            if (!u) return;
+
+            const kmStr = document.getElementById("op-km-input").value;
+            if (!kmStr) { showToast("Ingresa el kilometraje actual"); return; }
+
+            const km = parseInt(kmStr);
+            if (isNaN(km) || km <= 0) { showToast("Ingresa un kilometraje válido"); return; }
+            if (u.km_actual > 0 && km < u.km_actual) {
+                alert(`⚠️ Atención: El kilometraje ingresado (${km.toLocaleString()} km) es menor que el registrado anteriormente (${u.km_actual.toLocaleString()} km). Por favor, verifica el tablero de tu unidad.`);
+                return;
+            }
+
+            const btn = document.getElementById("op-btn");
+            btn.textContent = "Guardando..."; btn.disabled = true;
+            loading(true);
+            try {
+                const res = await apiPost({ accion: "actualizar_km", id_unidad: id, km: km });
+                if (res.ok) {
+                    showToast("✅ Kilometraje actualizado correctamente");
+                    updateLocalUnitKM(u, km);
+                    setTimeout(() => {
+                        show("s-login");
+                    }, 1500);
+                } else {
+                    showToast("Error al guardar: " + (res.error || "desconocido"));
+                }
+            } catch (e) {
+                showToast("Error de conexión");
+            }
+            loading(false);
+            btn.textContent = "Registrar Kilometraje"; btn.disabled = false;
+        }
+
+        function togglePasswordVisibility() {
+            const input = document.getElementById("l-pass");
+            const icon = document.getElementById("pass-eye-icon");
+            if (input.type === "password") {
+                input.type = "text";
+                icon.style.stroke = "#0066ff";
+            } else {
+                input.type = "password";
+                icon.style.stroke = "#94a3b8";
+            }
+        }
+
+        function filterFleetList() {
+            const query = document.getElementById("fleet-search").value.toLowerCase().trim();
+            const rows = document.querySelectorAll(".fleet-row");
+            rows.forEach(row => {
+                const text = row.getAttribute("data-search").toLowerCase();
+                if (text.includes(query)) {
+                    row.style.display = "flex";
+                } else {
+                    row.style.display = "none";
+                }
+            });
+        }
+
+        // Ocultar loader inicial al terminar de cargar el script
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('sw.js').then(() => console.log('PWA: Ready'));
+            });
+            // Recargar automáticamente la página cuando un nuevo service worker tome el control
+            let refreshing = false;
+            navigator.serviceWorker.addEventListener('controllerchange', () => {
+                if (!refreshing) {
+                    refreshing = true;
+                    window.location.reload();
+                }
+            });
+        }
+        loading(false);
+    </script>
+</body>
+
+</html>

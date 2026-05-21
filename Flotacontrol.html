@@ -1,0 +1,1478 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>FlotaControl PWA</title>
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#0f1923">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="apple-touch-icon" href="icon-192.png">
+    <link
+        href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap"
+        rel="stylesheet">
+    <style>
+        :root {
+            --bg: #0f1923;
+            --bg2: #162030;
+            --bg3: #1e2d3d;
+            --border: #263648;
+            --text: #e8edf2;
+            --muted: #7a9ab5;
+            --accent: #3b9eff;
+            --green: #2ecc8a;
+            --amber: #f5a623;
+            --red: #ff4757;
+            --radius: 14px;
+            --font: 'DM Sans', sans-serif;
+            --mono: 'DM Mono', monospace
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            -webkit-tap-highlight-color: transparent
+        }
+
+        html,
+        body {
+            height: 100%;
+            overflow: hidden;
+            background: var(--bg);
+            font-family: var(--font);
+            color: var(--text)
+        }
+
+        #app {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            max-width: 430px;
+            margin: 0 auto;
+            position: relative
+        }
+
+        .screen {
+            display: none;
+            flex-direction: column;
+            flex: 1;
+            overflow: hidden
+        }
+
+        .screen.active {
+            display: flex
+        }
+
+        .topbar {
+            padding: 52px 20px 16px;
+            background: var(--bg);
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-shrink: 0
+        }
+
+        .topbar h1 {
+            font-size: 18px;
+            font-weight: 600;
+            flex: 1;
+            letter-spacing: -.3px
+        }
+
+        .role-pill {
+            font-size: 11px;
+            font-family: var(--mono);
+            padding: 4px 10px;
+            border-radius: 20px;
+            background: var(--bg3);
+            color: var(--muted);
+            border: 1px solid var(--border)
+        }
+
+        .back-btn {
+            width: 36px;
+            height: 36px;
+            border-radius: 10px;
+            background: var(--bg3);
+            border: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 18px;
+            color: var(--muted);
+            flex-shrink: 0
+        }
+
+        .content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            -webkit-overflow-scrolling: touch
+        }
+
+        .content::-webkit-scrollbar {
+            display: none
+        }
+
+        .nav {
+            display: flex;
+            background: var(--bg2);
+            border-top: 1px solid var(--border);
+            padding-bottom: env(safe-area-inset-bottom);
+            flex-shrink: 0
+        }
+
+        .nav-btn {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            padding: 10px 0;
+            cursor: pointer;
+            font-size: 10px;
+            color: var(--muted);
+            font-family: var(--mono);
+            letter-spacing: .5px;
+            border: none;
+            background: transparent
+        }
+
+        .nav-btn svg {
+            width: 22px;
+            height: 22px;
+            stroke: currentColor;
+            fill: none;
+            stroke-width: 1.8;
+            stroke-linecap: round;
+            stroke-linejoin: round
+        }
+
+        .nav-btn.active {
+            color: var(--accent)
+        }
+
+        .card {
+            background: var(--bg2);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 14px 16px
+        }
+
+        .card-sm {
+            background: var(--bg3);
+            border-radius: 10px;
+            padding: 12px
+        }
+
+        .stat-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px
+        }
+
+        .stat-box {
+            background: var(--bg2);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 14px
+        }
+
+        .stat-box .label {
+            font-size: 11px;
+            color: var(--muted);
+            font-family: var(--mono);
+            margin-bottom: 6px;
+            letter-spacing: .5px
+        }
+
+        .stat-box .value {
+            font-size: 26px;
+            font-weight: 600;
+            letter-spacing: -1px
+        }
+
+        .unit-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 13px 16px;
+            background: var(--bg2);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            cursor: pointer;
+            transition: background .15s
+        }
+
+        .unit-row:active {
+            background: var(--bg3)
+        }
+
+        .unit-avatar {
+            width: 42px;
+            height: 42px;
+            border-radius: 10px;
+            background: var(--bg3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: var(--mono);
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--accent);
+            flex-shrink: 0;
+            border: 1px solid var(--border)
+        }
+
+        .unit-info {
+            flex: 1;
+            min-width: 0
+        }
+
+        .unit-info .uid {
+            font-size: 14px;
+            font-weight: 600
+        }
+
+        .unit-info .desc {
+            font-size: 12px;
+            color: var(--muted);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            margin-top: 2px
+        }
+
+        .unit-info .resp {
+            font-size: 11px;
+            color: var(--muted);
+            margin-top: 3px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis
+        }
+
+        .km-bar {
+            height: 3px;
+            border-radius: 2px;
+            background: var(--border);
+            margin-top: 6px;
+            overflow: hidden
+        }
+
+        .km-bar-fill {
+            height: 100%;
+            border-radius: 2px
+        }
+
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 11px;
+            font-family: var(--mono);
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-weight: 500;
+            letter-spacing: .3px
+        }
+
+        .badge-green {
+            background: rgba(46, 204, 138, .12);
+            color: var(--green);
+            border: 1px solid rgba(46, 204, 138, .25)
+        }
+
+        .badge-amber {
+            background: rgba(245, 166, 35, .12);
+            color: var(--amber);
+            border: 1px solid rgba(245, 166, 35, .25)
+        }
+
+        .badge-red {
+            background: rgba(255, 71, 87, .12);
+            color: var(--red);
+            border: 1px solid rgba(255, 71, 87, .25)
+        }
+
+        .badge-muted {
+            background: var(--bg3);
+            color: var(--muted);
+            border: 1px solid var(--border)
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px
+        }
+
+        .form-group label {
+            font-size: 12px;
+            color: var(--muted);
+            font-family: var(--mono);
+            letter-spacing: .5px
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            background: var(--bg3);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            color: var(--text);
+            font-family: var(--font);
+            font-size: 14px;
+            padding: 11px 13px;
+            outline: none;
+            transition: border-color .15s;
+            width: 100%
+        }
+
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            border-color: var(--accent)
+        }
+
+        .form-group select option {
+            background: var(--bg3)
+        }
+
+        .form-group textarea {
+            resize: none
+        }
+
+        .btn {
+            width: 100%;
+            padding: 14px;
+            border-radius: 12px;
+            border: none;
+            font-family: var(--font);
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: opacity .15s, transform .1s;
+            letter-spacing: -.2px
+        }
+
+        .btn:active {
+            transform: scale(.98);
+            opacity: .85
+        }
+
+        .btn:disabled {
+            opacity: .5;
+            cursor: default
+        }
+
+        .btn-primary {
+            background: var(--accent);
+            color: #fff
+        }
+
+        .btn-ghost {
+            background: var(--bg3);
+            color: var(--text);
+            border: 1px solid var(--border)
+        }
+
+        .btn-amber {
+            background: rgba(245, 166, 35, .15);
+            color: var(--amber);
+            border: 1px solid rgba(245, 166, 35, .3)
+        }
+
+        .sec-label {
+            font-size: 11px;
+            font-family: var(--mono);
+            color: var(--muted);
+            letter-spacing: 1px;
+            margin-bottom: 8px;
+            padding-left: 2px
+        }
+
+        .hist-item {
+            padding: 11px 0;
+            border-bottom: 1px solid var(--border)
+        }
+
+        .hist-item:last-child {
+            border-bottom: none
+        }
+
+        .hist-item .hi-type {
+            font-size: 13px;
+            font-weight: 500
+        }
+
+        .hist-item .hi-meta {
+            font-size: 11px;
+            color: var(--muted);
+            font-family: var(--mono);
+            margin-top: 3px
+        }
+
+        #s-login {
+            background: var(--bg);
+            justify-content: center;
+            align-items: center;
+            padding: 32px 24px;
+            gap: 0
+        }
+
+        .login-logo {
+            width: 72px;
+            height: 72px;
+            border-radius: 20px;
+            background: var(--bg2);
+            border: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 20px
+        }
+
+        .login-logo svg {
+            width: 36px;
+            height: 36px;
+            stroke: var(--accent);
+            fill: none;
+            stroke-width: 1.5;
+            stroke-linecap: round;
+            stroke-linejoin: round
+        }
+
+        .login-title {
+            font-size: 28px;
+            font-weight: 600;
+            letter-spacing: -1px;
+            margin-bottom: 4px
+        }
+
+        .login-sub {
+            font-size: 13px;
+            color: var(--muted);
+            margin-bottom: 28px
+        }
+
+        .login-form {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 12px
+        }
+
+        .err-msg {
+            font-size: 12px;
+            color: var(--red);
+            font-family: var(--mono);
+            text-align: center;
+            min-height: 18px
+        }
+
+        #loading {
+            position: fixed;
+            inset: 0;
+            background: var(--bg);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 999;
+            transition: opacity .3s
+        }
+
+        #loading.hide {
+            opacity: 0;
+            pointer-events: none
+        }
+
+        .spinner {
+            width: 32px;
+            height: 32px;
+            border: 2px solid var(--border);
+            border-top-color: var(--accent);
+            border-radius: 50%;
+            animation: spin .7s linear infinite
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg)
+            }
+        }
+
+        .success-wrap {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 16px;
+            padding: 32px
+        }
+
+        .success-icon {
+            width: 72px;
+            height: 72px;
+            border-radius: 50%;
+            background: rgba(46, 204, 138, .12);
+            border: 1px solid rgba(46, 204, 138, .3);
+            display: flex;
+            align-items: center;
+            justify-content: center
+        }
+
+        .success-icon svg {
+            width: 32px;
+            height: 32px;
+            stroke: var(--green);
+            fill: none;
+            stroke-width: 2;
+            stroke-linecap: round;
+            stroke-linejoin: round
+        }
+
+        #toast {
+            position: fixed;
+            bottom: 90px;
+            left: 50%;
+            transform: translateX(-50%) translateY(20px);
+            background: var(--bg3);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: 10px 20px;
+            font-size: 13px;
+            color: var(--text);
+            opacity: 0;
+            transition: opacity .25s, transform .25s;
+            pointer-events: none;
+            white-space: nowrap;
+            z-index: 1000
+        }
+
+        #toast.show {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0)
+        }
+
+        .km-detail-bar {
+            height: 8px;
+            border-radius: 4px;
+            background: var(--border);
+            overflow: hidden;
+            margin: 8px 0
+        }
+
+        .km-detail-fill {
+            height: 100%;
+            border-radius: 4px
+        }
+
+        .chips {
+            display: flex;
+            gap: 8px;
+            flex-wrap: nowrap;
+            overflow-x: auto;
+            padding-bottom: 4px
+        }
+
+        .chips::-webkit-scrollbar {
+            display: none
+        }
+
+        .chip {
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-family: var(--mono);
+            border: 1px solid var(--border);
+            background: var(--bg3);
+            color: var(--muted);
+            cursor: pointer;
+            white-space: nowrap;
+            transition: all .15s
+        }
+
+        .chip.active {
+            background: var(--accent);
+            color: #fff;
+            border-color: var(--accent)
+        }
+
+        .rep-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 0;
+            border-bottom: 1px solid var(--border)
+        }
+
+        .rep-row:last-child {
+            border-bottom: none
+        }
+
+        .rep-row p {
+            font-size: 13px;
+            font-weight: 500
+        }
+
+        .rep-row span {
+            font-size: 11px;
+            color: var(--muted);
+            font-family: var(--mono)
+        }
+
+        .user-info-box {
+            background: var(--bg3);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 12px 14px;
+            display: flex;
+            align-items: center;
+            gap: 12px
+        }
+
+        .user-avatar {
+            width: 38px;
+            height: 38px;
+            border-radius: 50%;
+            background: var(--bg2);
+            border: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--accent);
+            flex-shrink: 0
+        }
+    </style>
+</head>
+
+<body>
+    <div id="loading">
+        <div class="spinner"></div>
+    </div>
+    <div id="toast"></div>
+    <div id="app">
+
+        <!-- LOGIN -->
+        <div id="s-login" class="screen active">
+            <div class="login-logo">
+                <svg viewBox="0 0 24 24">
+                    <rect x="1" y="3" width="15" height="13" rx="2" />
+                    <path d="M16 8h4l3 3v5h-7V8z" />
+                    <circle cx="5.5" cy="18.5" r="2.5" />
+                    <circle cx="18.5" cy="18.5" r="2.5" />
+                </svg>
+            </div>
+            <p class="login-title">FlotaControl</p>
+            <p class="login-sub">Mantenimiento vehicular</p>
+            <div class="login-form">
+                <div class="form-group">
+                    <label>USUARIO</label>
+                    <input type="text" id="l-user" placeholder="tu usuario" autocomplete="username"
+                        autocapitalize="none">
+                </div>
+                <div class="form-group">
+                    <label>CONTRASEÑA</label>
+                    <input type="password" id="l-pass" placeholder="••••••••" autocomplete="current-password"
+                        onkeydown="if(event.key==='Enter')doLogin()">
+                </div>
+                <p class="err-msg" id="l-err"></p>
+                <button class="btn btn-primary" id="l-btn" onclick="doLogin()">Ingresar</button>
+            </div>
+        </div>
+
+        <!-- HOME -->
+        <div id="s-home" class="screen">
+            <div class="topbar">
+                <svg style="width:22px;height:22px;stroke:var(--accent);fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round"
+                    viewBox="0 0 24 24">
+                    <rect x="1" y="3" width="15" height="13" rx="2" />
+                    <path d="M16 8h4l3 3v5h-7V8z" />
+                    <circle cx="5.5" cy="18.5" r="2.5" />
+                    <circle cx="18.5" cy="18.5" r="2.5" />
+                </svg>
+                <h1>Unidades</h1>
+                <span class="role-pill" id="role-label">—</span>
+            </div>
+            <div class="content">
+                <div class="stat-grid">
+                    <div class="stat-box">
+                        <div class="label">TOTAL</div>
+                        <div class="value" id="stat-total">—</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="label">ALERTAS</div>
+                        <div class="value" id="stat-alerts" style="color:var(--amber)">—</div>
+                    </div>
+                </div>
+                <div class="chips" id="filter-chips">
+                    <div class="chip active" onclick="setFilter('all',this)">Todas</div>
+                    <div class="chip" onclick="setFilter('URGENTE',this)">🔴 Urgente</div>
+                    <div class="chip" onclick="setFilter('PROXIMO',this)">🟡 Próximo</div>
+                    <div class="chip" onclick="setFilter('AL_DIA',this)">🟢 Al día</div>
+                    <div class="chip" onclick="setFilter('SIN_KM',this)">Sin km</div>
+                </div>
+                <div id="unit-list" style="display:flex;flex-direction:column;gap:8px"></div>
+            </div>
+            <div class="nav">
+                <button class="nav-btn active" onclick="showHome()"><svg viewBox="0 0 24 24">
+                        <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
+                        <polyline points="9 22 9 12 15 12 15 22" />
+                    </svg>Inicio</button>
+                <!-- Botón Registrar eliminado -->
+                <button class="nav-btn" onclick="showReports()"><svg viewBox="0 0 24 24">
+                        <line x1="18" y1="20" x2="18" y2="10" />
+                        <line x1="12" y1="20" x2="12" y2="4" />
+                        <line x1="6" y1="20" x2="6" y2="14" />
+                    </svg>Reportes</button>
+                <button class="nav-btn" onclick="logout()"><svg viewBox="0 0 24 24">
+                        <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4" />
+                        <polyline points="16 17 21 12 16 7" />
+                        <line x1="21" y1="12" x2="9" y2="12" />
+                    </svg>Salir</button>
+            </div>
+        </div>
+
+        <!-- DETAIL -->
+        <div id="s-detail" class="screen">
+            <div class="topbar">
+                <div class="back-btn" onclick="showHome()">←</div>
+                <h1 id="det-title">—</h1>
+                <span id="det-badge" class="badge"></span>
+            </div>
+            <div class="content">
+                <div class="stat-grid">
+                    <div class="stat-box">
+                        <div class="label">KM ACTUAL</div>
+                        <div class="value" id="det-km">—</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="label">RESTANTES</div>
+                        <div class="value" id="det-rest">—</div>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="sec-label">PROGRESO DE INTERVALO</div>
+                    <div
+                        style="display:flex;justify-content:space-between;font-size:12px;color:var(--muted);margin-bottom:6px">
+                        <span id="det-recorridos"></span><span id="det-pct"></span>
+                    </div>
+                    <div class="km-detail-bar">
+                        <div id="det-bar" class="km-detail-fill"></div>
+                    </div>
+                    <div
+                        style="display:flex;justify-content:space-between;font-size:11px;color:var(--muted);font-family:var(--mono);margin-top:4px">
+                        <span>0 km</span><span id="det-intervalo"></span>
+                    </div>
+                </div>
+                <div class="card" style="padding:14px 16px 4px; margin-top:10px">
+                    <div id="det-info" style="display:flex;flex-direction:column;gap:0;padding-bottom:10px"></div>
+                </div>
+                <div style="display:flex;flex-direction:column;gap:10px;margin-top:20px">
+                    <button class="btn btn-primary" onclick="showUpdateKM()">📍 Actualizar KM Actual (Semanal)</button>
+                    <button class="btn btn-ghost" onclick="promptAfinacion()">🛠️ Registrar Nueva Afinación</button>
+                </div>
+            </div>
+            <div class="nav">
+                <button class="nav-btn" onclick="showHome()"><svg viewBox="0 0 24 24">
+                        <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
+                        <polyline points="9 22 9 12 15 12 15 22" />
+                    </svg>Inicio</button>
+                <button class="nav-btn active"><svg viewBox="0 0 24 24">
+                        <circle cx="12" cy="12" r="10" />
+                        <line x1="12" y1="16" x2="12" y2="12" />
+                        <line x1="12" y1="8" x2="12.01" y2="8" />
+                    </svg>Detalle</button>
+                <button class="nav-btn" onclick="showReports()"><svg viewBox="0 0 24 24">
+                        <line x1="18" y1="20" x2="18" y2="10" />
+                        <line x1="12" y1="20" x2="12" y2="4" />
+                        <line x1="6" y1="20" x2="6" y2="14" />
+                    </svg>Reportes</button>
+                <button class="nav-btn" onclick="logout()"><svg viewBox="0 0 24 24">
+                        <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4" />
+                        <polyline points="16 17 21 12 16 7" />
+                        <line x1="21" y1="12" x2="9" y2="12" />
+                    </svg>Salir</button>
+            </div>
+        </div>
+
+        <!-- REGISTER -->
+        <div id="s-register" class="screen">
+            <div class="topbar">
+                <div class="back-btn" onclick="showHome()">←</div>
+                <h1>Registrar servicio</h1>
+            </div>
+            <div class="content">
+                <div class="card" style="display:flex;flex-direction:column;gap:14px">
+                    <div class="form-group">
+                        <label>UNIDAD</label>
+                        <select id="f-unit" onchange="autoFillOperator()">
+                            <option value="">Selecciona unidad...</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>TIPO DE SERVICIO</label>
+                        <select id="f-type">
+                            <option>Mantenimiento preventivo</option>
+                            <option>Cambio de aceite</option>
+                            <option>Filtro de aceite</option>
+                            <option>Filtro de aire</option>
+                            <option>Filtro combustible</option>
+                            <option>Frenos</option>
+                            <option>Bujías</option>
+                            <option>Revisión general</option>
+                            <option>Otro</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>KILOMETRAJE ACTUAL</label>
+                        <input type="number" id="f-km" placeholder="Ej: 45200" inputmode="numeric">
+                    </div>
+                    <div class="form-group">
+                        <label>OPERADOR RESPONSABLE</label>
+                        <input type="text" id="f-tech" placeholder="Nombre del operador">
+                    </div>
+                    <div class="form-group">
+                        <label>COSTO (MXN) — opcional</label>
+                        <input type="number" id="f-cost" placeholder="0.00" inputmode="decimal">
+                    </div>
+                    <div class="form-group">
+                        <label>NOTAS</label>
+                        <textarea id="f-notes" rows="2" placeholder="Observaciones..."></textarea>
+                    </div>
+                </div>
+                <div class="card" style="display:flex;flex-direction:column;gap:12px">
+                    <div class="sec-label">CONSUMIBLES USADOS</div>
+                    <div id="consumibles-list" style="display:flex;flex-direction:column;gap:8px"></div>
+                    <button class="btn btn-ghost" onclick="addConsumible()">+ Agregar consumible</button>
+                </div>
+                <button class="btn btn-primary" id="save-btn" onclick="saveService()">Guardar registro</button>
+                <p style="font-size:11px;color:var(--muted);text-align:center;font-family:var(--mono)">Sincroniza con
+                    Google Sheets automáticamente</p>
+            </div>
+            <div class="nav">
+                <button class="nav-btn" onclick="showHome()"><svg viewBox="0 0 24 24">
+                        <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
+                        <polyline points="9 22 9 12 15 12 15 22" />
+                    </svg>Inicio</button>
+                <button class="nav-btn active"><svg viewBox="0 0 24 24">
+                        <circle cx="12" cy="12" r="10" />
+                        <line x1="12" y1="8" x2="12" y2="16" />
+                        <line x1="8" y1="12" x2="16" y2="12" />
+                    </svg>Registrar</button>
+                <button class="nav-btn" onclick="showReports()"><svg viewBox="0 0 24 24">
+                        <line x1="18" y1="20" x2="18" y2="10" />
+                        <line x1="12" y1="20" x2="12" y2="4" />
+                        <line x1="6" y1="20" x2="6" y2="14" />
+                    </svg>Reportes</button>
+                <button class="nav-btn" onclick="logout()"><svg viewBox="0 0 24 24">
+                        <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4" />
+                        <polyline points="16 17 21 12 16 7" />
+                        <line x1="21" y1="12" x2="9" y2="12" />
+                    </svg>Salir</button>
+            </div>
+        </div>
+
+        <!-- REPORTS -->
+        <div id="s-reports" class="screen">
+            <div class="topbar">
+                <svg style="width:22px;height:22px;stroke:var(--accent);fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round"
+                    viewBox="0 0 24 24">
+                    <line x1="18" y1="20" x2="18" y2="10" />
+                    <line x1="12" y1="20" x2="12" y2="4" />
+                    <line x1="6" y1="20" x2="6" y2="14" />
+                </svg>
+                <h1>Reportes</h1>
+                <span class="role-pill" id="role-label2">—</span>
+            </div>
+            <div class="content">
+                <div class="stat-grid">
+                    <div class="stat-box">
+                        <div class="label">URGENTES</div>
+                        <div class="value" id="rep-urgentes" style="color:var(--red)">—</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="label">PRÓXIMOS</div>
+                        <div class="value" id="rep-proximos" style="color:var(--amber)">—</div>
+                    </div>
+                </div>
+
+                <!-- Botón bajo demanda — solo visible para Coordinador y Supervisor -->
+                <div id="btn-demanda-wrap" style="display:none">
+                    <button class="btn btn-amber" id="btn-demanda" onclick="enviarReporteDemanda()">
+                        📧 Enviar reporte ahora a todos
+                    </button>
+                    <p
+                        style="font-size:11px;color:var(--muted);text-align:center;font-family:var(--mono);margin-top:6px">
+                        Llega a los 4 correos del equipo</p>
+                </div>
+
+                <div class="card">
+                    <div class="sec-label">ESTADO DE LA FLOTA</div>
+                    <div id="rep-fleet" style="display:flex;flex-direction:column;gap:0"></div>
+                </div>
+                <div class="card" style="display:flex;flex-direction:column;gap:10px" id="coord-settings">
+                    <div class="sec-label">CONFIGURACIÓN (SOLO COORDINADOR)</div>
+                    <div class="form-group">
+                        <label>INTERVALO DE MANTENIMIENTO (KM)</label>
+                        <input type="number" id="cfg-intervalo" value="5000" placeholder="Ej: 5000">
+                    </div>
+                    <button class="btn btn-ghost" onclick="updateGlobalInterval()">Actualizar para toda la
+                        flota</button>
+                </div>
+                <div id="rep-monthly" style="display:flex;flex-direction:column;gap:0"></div>
+            </div>
+            <div class="nav">
+                <button class="nav-btn" onclick="showHome()"><svg viewBox="0 0 24 24">
+                        <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
+                        <polyline points="9 22 9 12 15 12 15 22" />
+                    </svg>Inicio</button>
+                <!-- Botón Registrar eliminado definitivamente -->
+                <button class="nav-btn active"><svg viewBox="0 0 24 24">
+                        <line x1="18" y1="20" x2="18" y2="10" />
+                        <line x1="12" y1="20" x2="12" y2="4" />
+                        <line x1="6" y1="20" x2="6" y2="14" />
+                    </svg>Reportes</button>
+                <button class="nav-btn" onclick="logout()"><svg viewBox="0 0 24 24">
+                        <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4" />
+                        <polyline points="16 17 21 12 16 7" />
+                        <line x1="21" y1="12" x2="9" y2="12" />
+                    </svg>Salir</button>
+            </div>
+        </div>
+
+        <!-- UPDATE KM -->
+        <div id="s-updatekm" class="screen">
+            <div class="topbar">
+                <div class="back-btn" onclick="goBackFromKM()">←</div>
+                <h1 id="ukm-title">Actualizar km</h1>
+            </div>
+            <div class="content">
+                <div class="card" style="background:rgba(59,158,255,.08);border-color:rgba(59,158,255,.25)">
+                    <p style="font-size:13px;color:var(--accent)">📍 Actualiza solo el kilometraje actual sin registrar
+                        un servicio. Útil para la captura inicial o cuando el km cambió pero no hubo mantenimiento.</p>
+                </div>
+                <div id="ukm-single" style="display:none;flex-direction:column;gap:12px">
+                    <div class="card" style="display:flex;flex-direction:column;gap:14px">
+                        <div class="unit-info" style="padding:4px 0">
+                            <div class="uid" id="ukm-unit-label">—</div>
+                            <div class="desc" id="ukm-unit-desc">—</div>
+                        </div>
+                        <div class="form-group">
+                            <label>KILOMETRAJE ACTUAL</label>
+                            <input type="number" id="ukm-km" placeholder="Ej: 45200" inputmode="numeric">
+                        </div>
+                        <button class="btn btn-primary" id="ukm-btn" onclick="saveKM()">Guardar km</button>
+                    </div>
+                </div>
+                <div id="ukm-bulk" style="display:none;flex-direction:column;gap:8px">
+                    <p class="sec-label">CAPTURA MASIVA — toca cada unidad para ingresar su km</p>
+                    <div id="ukm-list" style="display:flex;flex-direction:column;gap:8px"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- SUCCESS -->
+        <div id="s-success" class="screen">
+            <div class="success-wrap">
+                <div class="success-icon"><svg viewBox="0 0 24 24">
+                        <polyline points="20 6 9 17 4 12" />
+                    </svg></div>
+                <p style="font-size:20px;font-weight:600;letter-spacing:-.5px">Servicio registrado</p>
+                <p style="font-size:13px;color:var(--muted);text-align:center">Guardado y sincronizado<br>con Google
+                    Sheets</p>
+                <p id="suc-id" style="font-family:var(--mono);font-size:12px;color:var(--accent)"></p>
+                <button class="btn btn-primary" style="width:200px;margin-top:8px" onclick="showHome()">Volver al
+                    inicio</button>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        const API = "https://script.google.com/macros/s/AKfycbzh-orehm3X1f1JORkXZjUp1BdRlW6HOK2U5phuS2OklDQjHo8-s01o3PD9uCGGJq5a/exec";
+        const ROLES_REPORTE = ["Coordinador", "Supervisor"];
+
+        const USERS = {
+            "gilagor": { nombre: "Gregorio Ilagor", rol: "Coordinador", clave: "Flota2026#G" },
+            "wramos": { nombre: "Williams Ramos", rol: "Supervisor", clave: "Flota2026#S" },
+            "jcontreras": { nombre: "Juan Contreras", rol: "Tecnico", clave: "Flota2026#T1" },
+            "anetro": { nombre: "Alfredo Netro", rol: "Tecnico", clave: "Flota2026#T2" }
+        };
+
+        let currentUser = null; // { usuario, nombre, rol, email }
+        let unidades = [];
+        let currentUnit = null;
+        let filtroActivo = "all";
+        let consumiblesForm = [];
+
+        // ── Utilidades ────────────────────────────────────────────
+        function show(id) {
+            document.querySelectorAll(".screen").forEach(s => s.classList.remove("active"));
+            document.getElementById(id).classList.add("active");
+        }
+        function showToast(msg, dur = 2500) {
+            const t = document.getElementById("toast");
+            t.textContent = msg;
+            t.classList.add("show");
+            setTimeout(() => t.classList.remove("show"), dur);
+        }
+        function loading(on) {
+            document.getElementById("loading").classList.toggle("hide", !on);
+        }
+        function badgeClass(a) {
+            return a === "URGENTE" ? "badge-red" : a === "PROXIMO" ? "badge-amber" : a === "AL_DIA" ? "badge-green" : "badge-muted";
+        }
+        function badgeLabel(a) {
+            return a === "URGENTE" ? "🔴 Urgente" : a === "PROXIMO" ? "🟡 Próximo" : a === "AL_DIA" ? "🟢 Al día" : "Sin km";
+        }
+        function barColor(a) {
+            return a === "URGENTE" ? "var(--red)" : a === "PROXIMO" ? "var(--amber)" : "var(--green)";
+        }
+        function apiParams() {
+            return { usuario: currentUser.usuario, clave: currentUser._clave };
+        }
+
+        // ── API ───────────────────────────────────────────────────
+        async function apiGet(accion, extra = {}) {
+            const qs = new URLSearchParams({ accion, ...apiParams(), ...extra }).toString();
+            console.log("Petición API:", `${API}?${qs}`);
+            try {
+                const r = await fetch(`${API}?${qs}`);
+                const data = await r.json();
+                console.log("Respuesta API:", data);
+                return data;
+            } catch (e) {
+                console.error("Error en apiGet:", e);
+                throw e;
+            }
+        }
+        async function apiPost(body) {
+            const r = await fetch(API, { method: "POST", body: JSON.stringify({ ...body, ...apiParams() }) });
+            return r.json();
+        }
+
+        // ── Login ─────────────────────────────────────────────────
+        async function doLogin() {
+            const usuario = document.getElementById("l-user").value.trim();
+            const clave = document.getElementById("l-pass").value;
+            const errEl = document.getElementById("l-err");
+            const btn = document.getElementById("l-btn");
+            if (!usuario || !clave) { errEl.textContent = "Ingresa usuario y contraseña"; return; }
+            errEl.textContent = "";
+            btn.textContent = "Verificando...";
+            btn.disabled = true;
+            loading(true);
+            try {
+                let res;
+                const local = USERS[usuario];
+
+                if (local && local.clave === clave) {
+                    // Login local exitoso
+                    res = { ok: true, usuario, rol: local.rol, nombre: local.nombre };
+                } else {
+                    // Intento vía API si no coincide localmente
+                    const qs = new URLSearchParams({ accion: "login", usuario, clave }).toString();
+                    res = await fetch(`${API}?${qs}`).then(r => r.json());
+                }
+
+                if (res.ok) {
+                    currentUser = { ...res, _clave: clave };
+                    document.getElementById("role-label").textContent = res.rol;
+                    document.getElementById("role-label2").textContent = res.rol;
+                    document.getElementById("btn-demanda-wrap").style.display =
+                        ROLES_REPORTE.includes(res.rol) ? "flex" : "none";
+                    document.getElementById("coord-settings").style.display =
+                        res.rol === "Coordinador" ? "flex" : "none";
+                    await showHome();
+                } else {
+                    errEl.textContent = res.error || "Usuario o clave incorrectos";
+                }
+            } catch (e) {
+                errEl.textContent = "Error de conexión. Verifica tu internet.";
+            }
+            loading(false);
+            btn.textContent = "Ingresar";
+            btn.disabled = false;
+        }
+
+        function logout() {
+            currentUser = null; unidades = []; currentUnit = null;
+            document.getElementById("l-user").value = "";
+            document.getElementById("l-pass").value = "";
+            document.getElementById("l-err").textContent = "";
+            show("s-login");
+        }
+
+        // ── Home ──────────────────────────────────────────────────
+        async function showHome() {
+            show("s-home");
+            loading(true);
+            try {
+                unidades = await apiGet("unidades");
+                renderUnidades();
+            } catch (e) { showToast("Error al cargar unidades"); }
+            loading(false);
+        }
+
+        function setFilter(f, el) {
+            filtroActivo = f;
+            document.querySelectorAll(".chip").forEach(c => c.classList.remove("active"));
+            el.classList.add("active");
+            renderUnidades();
+        }
+
+        function renderUnidades() {
+            const filtered = filtroActivo === "all" ? unidades : unidades.filter(u => u.alerta === filtroActivo);
+            const alerts = unidades.filter(u => u.alerta === "URGENTE" || u.alerta === "PROXIMO").length;
+            document.getElementById("stat-total").textContent = unidades.length;
+            document.getElementById("stat-alerts").textContent = alerts;
+            const list = document.getElementById("unit-list");
+            if (!filtered.length) {
+                list.innerHTML = `<div style="text-align:center;padding:32px;color:var(--muted);font-size:13px">Sin unidades en este filtro</div>`;
+                return;
+            }
+            list.innerHTML = filtered.map(u => {
+                const pct = Math.min(100, u.pct_uso || 0);
+                return `<div class="unit-row" onclick="openUnit('${u.id}')">
+      <div class="unit-avatar">${u.id.replace("U-", "")}</div>
+        <div class="unit-info">
+          <div style="display:flex;align-items:center;justify-content:space-between">
+            <span class="uid">${u.id}</span>
+            <span class="badge ${badgeClass(u.alerta)}" style="font-size:10px;padding:3px 8px">${badgeLabel(u.alerta)}</span>
+          </div>
+          <div class="desc">${u.descripcion}</div>
+        <div class="resp">${u.responsable || "Sin asignar"}</div>
+        <div class="km-bar"><div class="km-bar-fill" style="width:${pct}%;background:${barColor(u.alerta)}"></div></div>
+      </div>
+    </div>`;
+            }).join("");
+        }
+
+        // ── Detail ────────────────────────────────────────────────
+        async function openUnit(id) {
+            currentUnit = unidades.find(u => u.id === id);
+            if (!currentUnit) return;
+            show("s-detail");
+            const u = currentUnit;
+            const pct = Math.min(100, u.pct_uso || 0);
+            document.getElementById("det-title").textContent = u.id;
+            document.getElementById("det-km").textContent = u.km_actual > 0 ? u.km_actual.toLocaleString() : "—";
+            document.getElementById("det-rest").textContent = u.km_actual > 0 ? (u.restantes > 0 ? u.restantes.toLocaleString() : "Vencido") : "—";
+            const badge = document.getElementById("det-badge");
+            badge.className = "badge " + badgeClass(u.alerta);
+            badge.textContent = badgeLabel(u.alerta);
+            document.getElementById("det-recorridos").textContent = `${u.recorridos.toLocaleString()} km recorridos`;
+            document.getElementById("det-pct").textContent = `${pct}%`;
+            document.getElementById("det-bar").style.width = pct + "%";
+            document.getElementById("det-bar").style.background = barColor(u.alerta);
+            document.getElementById("det-intervalo").textContent = u.intervalo.toLocaleString() + " km";
+            document.getElementById("det-info").innerHTML = [
+                ["Descripción", u.descripcion],
+                ["Responsable", u.responsable || "Sin asignar"],
+                ["Última Fecha Afinación", u.fecha_aceite],
+                ["Intervalo Global", u.intervalo.toLocaleString() + " km"],
+            ].map(([k, v]) => `<div style="display:flex;justify-content:space-between;font-size:13px;padding:7px 0;border-bottom:1px solid var(--border)">
+    <span style="color:var(--muted);font-family:var(--mono);font-size:11px">${k}</span>
+    <span style="font-weight:500">${v}</span></div>`).join("");
+        }
+
+        // ── Register ──────────────────────────────────────────────
+        function showRegister() {
+            consumiblesForm = [];
+            renderConsumibles();
+            const sel = document.getElementById("f-unit");
+            sel.innerHTML = '<option value="">Selecciona unidad...</option>' +
+                unidades.map(u => `<option value="${u.id}">${u.id} — ${u.descripcion}</option>`).join("");
+            document.getElementById("f-km").value = "";
+            document.getElementById("f-tech").value = ""; // Se llenará al seleccionar unidad
+            document.getElementById("f-cost").value = "";
+            document.getElementById("f-notes").value = "";
+            show("s-register");
+        }
+
+        function autoFillOperator() {
+            const unitId = document.getElementById("f-unit").value;
+            const unit = unidades.find(u => u.id === unitId);
+            if (unit) {
+                document.getElementById("f-tech").value = unit.responsable === "Sin asignar" ? "" : unit.responsable;
+            } else {
+                document.getElementById("f-tech").value = "";
+            }
+        }
+        function showRegisterForUnit() {
+            showRegister();
+            if (currentUnit) document.getElementById("f-unit").value = currentUnit.id;
+        }
+        function addConsumible() {
+            consumiblesForm.push({ producto: "", marca: "", cantidad: "", unidad_med: "Litros", costo_unit: "" });
+            renderConsumibles();
+        }
+        function renderConsumibles() {
+            document.getElementById("consumibles-list").innerHTML = consumiblesForm.map((c, i) => `
+    <div class="card-sm" style="display:flex;flex-direction:column;gap:8px">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <span style="font-size:11px;font-family:var(--mono);color:var(--muted)">CONSUMIBLE ${i + 1}</span>
+        <span onclick="removeConsumible(${i})" style="color:var(--red);font-size:20px;cursor:pointer;line-height:1">×</span>
+      </div>
+      <input type="text" placeholder="Producto (ej: Aceite 5W-30)" value="${c.producto}"
+        oninput="consumiblesForm[${i}].producto=this.value"
+        style="background:var(--bg2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:var(--font);font-size:13px;padding:8px 10px;outline:none;width:100%">
+      <div style="display:flex;gap:8px">
+        <input type="text" placeholder="Marca" value="${c.marca}"
+          oninput="consumiblesForm[${i}].marca=this.value"
+          style="flex:1;background:var(--bg2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:var(--font);font-size:13px;padding:8px 10px;outline:none">
+        <input type="number" placeholder="Cant." value="${c.cantidad}"
+          oninput="consumiblesForm[${i}].cantidad=this.value" inputmode="decimal"
+          style="width:68px;background:var(--bg2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:var(--font);font-size:13px;padding:8px 10px;outline:none">
+        <select oninput="consumiblesForm[${i}].unidad_med=this.value"
+          style="background:var(--bg2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:var(--font);font-size:13px;padding:8px 6px;outline:none">
+          ${["Litros", "Piezas", "Juego", "Kg", "Cuartos"].map(o => `<option${o === c.unidad_med ? " selected" : ""}>${o}</option>`).join("")}
+        </select>
+      </div>
+    </div>`).join("");
+        }
+        function removeConsumible(i) { consumiblesForm.splice(i, 1); renderConsumibles(); }
+
+        async function saveService() {
+            const unit = document.getElementById("f-unit").value;
+            const km = document.getElementById("f-km").value;
+            if (!unit) { showToast("Selecciona una unidad"); return; }
+            if (!km) { showToast("Ingresa el kilometraje"); return; }
+            const btn = document.getElementById("save-btn");
+            btn.textContent = "Guardando..."; btn.disabled = true;
+            loading(true);
+            try {
+                const res = await apiPost({
+                    accion: "registrar_servicio", id_unidad: unit,
+                    tipo: document.getElementById("f-type").value,
+                    km: parseInt(km),
+                    tecnico: document.getElementById("f-tech").value,
+                    costo: document.getElementById("f-cost").value || "",
+                    notas: document.getElementById("f-notes").value || "",
+                    consumibles: consumiblesForm.filter(c => c.producto)
+                });
+                if (res.ok) {
+                    document.getElementById("suc-id").textContent = res.id_servicio;
+                    const u = unidades.find(x => x.id === unit);
+                    if (u) u.km_actual = parseInt(km);
+                    show("s-success");
+                } else { showToast("Error: " + (res.error || "desconocido")); }
+            } catch (e) { showToast("Error de conexión"); }
+            loading(false);
+            btn.textContent = "Guardar registro"; btn.disabled = false;
+        }
+
+        // ── Reports ───────────────────────────────────────────────
+        async function showReports() {
+            show("s-reports");
+            loading(true);
+            try {
+                if (!unidades.length) unidades = await apiGet("unidades");
+                const urgentes = unidades.filter(u => u.alerta === "URGENTE").length;
+                const proximos = unidades.filter(u => u.alerta === "PROXIMO").length;
+                document.getElementById("rep-urgentes").textContent = urgentes;
+                document.getElementById("rep-proximos").textContent = proximos;
+                document.getElementById("rep-fleet").innerHTML = unidades.map(u => `
+      <div class="rep-row">
+        <div><p>${u.id} — ${u.descripcion}</p><span>${u.responsable || "Sin asignar"}</span></div>
+        <span class="badge ${badgeClass(u.alerta)}" style="font-size:10px">${badgeLabel(u.alerta)}</span>
+      </div>`).join("");
+            } catch (e) { showToast("Error al cargar reportes"); }
+            loading(false);
+        }
+
+        async function loadMonthReport() {
+            const mes = document.getElementById("rep-mes").value;
+            const anio = document.getElementById("rep-anio").value;
+            loading(true);
+            try {
+                const res = await apiGet("reporte_mensual", { mes, anio });
+                const el = document.getElementById("rep-monthly");
+                el.innerHTML = !res.servicios?.length
+                    ? `<div style="color:var(--muted);font-size:12px;padding:10px 0;font-family:var(--mono)">Sin servicios en este período</div>`
+                    : `<div style="font-size:12px;color:var(--muted);font-family:var(--mono);padding:8px 0">${res.total} servicio(s)</div>` +
+                    res.servicios.map(s => `
+          <div class="rep-row">
+            <div><p>${s.id_unidad} — ${s.tipo}</p><span>${s.fecha} · ${s.tecnico || "—"}</span></div>
+            <span style="font-family:var(--mono);font-size:11px;color:var(--muted)">${s.km ? s.km.toLocaleString() + " km" : ""}</span>
+          </div>`).join("");
+            } catch (e) { showToast("Error al cargar reporte"); }
+            loading(false);
+        }
+
+        // Reporte bajo demanda
+        async function enviarReporteDemanda() {
+            const btn = document.getElementById("btn-demanda");
+            btn.textContent = "Enviando..."; btn.disabled = true;
+            loading(true);
+            try {
+                const res = await apiPost({ accion: "reporte_demanda" });
+                if (res.ok) showToast("✅ " + res.mensaje, 3500);
+                else showToast("Error: " + (res.error || "desconocido"));
+            } catch (e) { showToast("Error de conexión"); }
+            loading(false);
+            btn.textContent = "📧 Enviar reporte ahora a todos"; btn.disabled = false;
+        }
+
+        // ── Update KM ─────────────────────────────────────────────
+        let kmFromDetail = false;
+
+        function showUpdateKM() {
+            // Desde detalle de una unidad específica
+            kmFromDetail = true;
+            const u = currentUnit;
+            document.getElementById("ukm-title").textContent = u.id + " — Actualizar km";
+            document.getElementById("ukm-unit-label").textContent = u.id;
+            document.getElementById("ukm-unit-desc").textContent = u.descripcion + " · " + (u.responsable || "Sin asignar");
+            document.getElementById("ukm-km").value = u.km_actual > 0 ? u.km_actual : "";
+            document.getElementById("ukm-single").style.display = "flex";
+            document.getElementById("ukm-bulk").style.display = "none";
+            show("s-updatekm");
+        }
+
+        function showBulkKM() {
+            // Desde reportes — captura masiva
+            kmFromDetail = false;
+            document.getElementById("ukm-title").textContent = "Captura masiva de km";
+            document.getElementById("ukm-single").style.display = "none";
+            document.getElementById("ukm-bulk").style.display = "flex";
+            const sinKM = unidades.filter(u => !u.km_actual || u.km_actual === 0);
+            const conKM = unidades.filter(u => u.km_actual > 0);
+            const lista = [...sinKM, ...conKM]; // primero los que no tienen km
+            document.getElementById("ukm-list").innerHTML = lista.map(u => `
+    <div class="card" style="display:flex;align-items:center;gap:12px;padding:12px 14px">
+      <div class="unit-avatar" style="width:38px;height:38px;font-size:11px">${u.id.replace("U-", "")}</div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:13px;font-weight:600">${u.id}</div>
+        <div style="font-size:11px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${u.descripcion}</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:6px">
+        <input type="number" inputmode="numeric" placeholder="km" id="bulk-${u.id}"
+          value="${u.km_actual > 0 ? u.km_actual : ''}"
+          style="width:90px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:var(--mono);font-size:13px;padding:7px 10px;outline:none;text-align:right"
+          onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'">
+        <button onclick="saveBulkKM('${u.id}')" style="width:34px;height:34px;border-radius:8px;border:none;background:var(--accent);color:#fff;font-size:16px;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center">✓</button>
+      </div>
+    </div>`).join("");
+            show("s-updatekm");
+        }
+
+        function goBackFromKM() {
+            if (kmFromDetail && currentUnit) {
+                show("s-detail");
+            } else {
+                showReports();
+            }
+        }
+
+        async function saveKM() {
+            const km = document.getElementById("ukm-km").value;
+            if (!km) { showToast("Ingresa el kilometraje"); return; }
+            const btn = document.getElementById("ukm-btn");
+            btn.textContent = "Guardando..."; btn.disabled = true;
+            loading(true);
+            try {
+                const res = await apiPost({ accion: "actualizar_km", id_unidad: currentUnit.id, km: parseInt(km) });
+                if (res.ok) {
+                    currentUnit.km_actual = parseInt(km);
+                    const u = unidades.find(x => x.id === currentUnit.id);
+                    if (u) u.km_actual = parseInt(km);
+                    showToast("✅ Km actualizado correctamente");
+                    setTimeout(() => { show("s-detail"); openUnit(currentUnit.id); }, 1200);
+                } else { showToast("Error: " + (res.error || "desconocido")); }
+            } catch (e) { showToast("Error de conexión"); }
+            loading(false);
+            btn.textContent = "Guardar km"; btn.disabled = false;
+        }
+
+        async function saveBulkKM(idUnidad) {
+            const input = document.getElementById("bulk-" + idUnidad);
+            const km = input?.value;
+            if (!km) { showToast("Ingresa el km de " + idUnidad); return; }
+            input.style.borderColor = "var(--amber)";
+            try {
+                const res = await apiPost({ accion: "actualizar_km", id_unidad: idUnidad, km: parseInt(km) });
+                if (res.ok) {
+                    input.style.borderColor = "var(--green)";
+                    const u = unidades.find(x => x.id === idUnidad);
+                    if (u) u.km_actual = parseInt(km);
+                    showToast("✅ " + idUnidad + " — " + parseInt(km).toLocaleString() + " km");
+                } else {
+                    input.style.borderColor = "var(--red)";
+                    showToast("Error en " + idUnidad);
+                }
+            } catch (e) {
+                input.style.borderColor = "var(--red)";
+                showToast("Error de conexión");
+            }
+        }
+
+        async function promptAfinacion() {
+            const km = prompt("1. Ingresa el KILOMETRAJE de la afinación:", currentUnit.km_actual);
+            if (!km) return;
+
+            const hoy = new Date();
+            const fechaDefecto = `${hoy.getDate().toString().padStart(2, '0')}/${(hoy.getMonth() + 1).toString().padStart(2, '0')}/${hoy.getFullYear()}`;
+            const fecha = prompt("2. Ingresa la FECHA de la afinación (DD/MM/AAAA):", fechaDefecto);
+            if (!fecha) return;
+
+            const nKm = parseInt(km);
+            if (isNaN(nKm)) return alert("Kilometraje inválido");
+
+            loading(true);
+            try {
+                const res = await apiPost({
+                    accion: "registrar_afinacion",
+                    id_unidad: currentUnit.id,
+                    km: nKm,
+                    fecha: fecha
+                });
+                if (res.ok) {
+                    showToast("✅ Afinación registrada correctamente");
+                    await showHome();
+                    openUnit(currentUnit.id);
+                } else {
+                    alert("⚠️ Error al guardar: " + (res.error || "No se pudo actualizar la fila"));
+                }
+            } catch (e) { showToast("Error de conexión"); }
+            loading(false);
+        }
+
+        async function updateGlobalInterval() {
+            const km = document.getElementById("cfg-intervalo").value;
+            if (!km) return;
+            loading(true);
+            try {
+                const res = await apiPost({ accion: "ajustar_intervalo", nuevo_intervalo: parseInt(km) });
+                if (res.ok) {
+                    showToast("✅ Intervalo global actualizado a " + km + " km");
+                    await showHome();
+                }
+            } catch (e) { showToast("Error de conexión"); }
+            loading(false);
+        }
+
+        // Ocultar loader inicial al terminar de cargar el script
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('sw.js').then(() => console.log('PWA: Ready'));
+            });
+        }
+        loading(false);
+    </script>
+</body>
+
+</html>

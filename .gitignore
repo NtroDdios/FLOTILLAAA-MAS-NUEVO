@@ -1,0 +1,11 @@
+# Archivos temporales
+*.tmp
+*.log
+desktop.ini
+Thumbs.db
+
+# Archivos de sistema Windows
+$RECYCLE.BIN/
+
+# Node modules (si aplica en el futuro)
+node_modules/
