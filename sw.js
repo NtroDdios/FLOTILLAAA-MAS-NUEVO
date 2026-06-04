@@ -1,11 +1,12 @@
-const CACHE_NAME = 'flotacontrol-v11';
+const CACHE_NAME = 'flotacontrol-v12';
 const ASSETS = [
   'index.html',
   'manifest.json',
   'icon-192.png',
   'icon-512.png',
   'toyota_hilux_white.png',
-  'urgente_bg.png'
+  'urgente_bg.png',
+  'https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js'
 ];
 
 // Instalar y forzar la activación inmediata
