@@ -1,4 +1,4 @@
-const CACHE_NAME = 'flotacontrol-v12';
+const CACHE_NAME = 'flotacontrol-v13';
 const ASSETS = [
   'index.html',
   'manifest.json',
