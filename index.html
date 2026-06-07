@@ -4005,7 +4005,7 @@
                 });
 
                 // Enviar notificación Push a través de OneSignal REST API (si se configuró la API Key)
-                if (ONESIGNAL_REST_KEY && ONESIGNAL_REST_KEY !== "TU_REST_API_KEY_AQUI") {
+                if (ONESIGNAL_REST_KEY && ONESIGNAL_REST_KEY !== "T5477c4fd-a878-4cd3-b82e-e867b26457f9") {
                     try {
                         fetch("https://onesignal.com/api/v1/notifications", {
                             method: "POST",
@@ -4040,7 +4040,7 @@
             const base64 = await fileToBase64(compressed);
             const base64Data = base64.split(',')[1]; // quitar el prefijo data:image/...;base64,
 
-            if (!IMGBB_API_KEY || IMGBB_API_KEY === 'TU_API_KEY_AQUI') {
+            if (!IMGBB_API_KEY || IMGBB_API_KEY === 'T618111eea278dce1d160360c7d295a83') {
                 throw new Error('Configura tu API key de ImgBB en el código');
             }
 
