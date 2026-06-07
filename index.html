@@ -2732,7 +2732,10 @@
     </div>
 
     <script>
-        const API = window.location.origin + "/api";
+        const IS_LOCAL = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
+        const API = IS_LOCAL 
+            ? (window.location.origin + "/api")
+            : "https://script.google.com/macros/s/AKfycbw376Tltkg4bE11VfCtyG6HQ3AhFsgKc6mmvaUUKD_XgJcZ0MfAVLp_N4J-ii_de9U/exec";
         const ROLES_REPORTE = ["Coordinador", "Supervisor"];
 
         // Configuración OneSignal
@@ -3712,15 +3715,35 @@
         loading(false);
 
         // ══════════════════════════════════════════════════════════════
-        // ── CONFIGURACIÓN BACKEND LOCAL (MySQL + uploads) ──────────────────────
-        let db = true; 
+        // ── CONFIGURACIÓN BASE DE DATOS Y CHAT ─────────────────────────
+        const firebaseConfig = {
+            apiKey: "AIzaSyBpndJT2kwY2ixrPxLjmzmVjbTo4gw60o8",
+            authDomain: "flotilla-c18a3.firebaseapp.com",
+            projectId: "flotilla-c18a3",
+            storageBucket: "flotilla-c18a3.firebasestorage.app",
+            messagingSenderId: "819346593147",
+            appId: "1:819346593147:web:6781408a7a37bd60e519de",
+            measurementId: "G-HY32S0HD1H"
+        };
+        let db = null;
         let storage = null;
         let messaging = null;
 
+        if (!IS_LOCAL && typeof firebase !== 'undefined') {
+            try {
+                firebase.initializeApp(firebaseConfig);
+                db = firebase.firestore();
+                storage = firebase.storage();
+                try { messaging = firebase.messaging(); } catch (e) {}
+            } catch (err) {
+                console.error('Error al inicializar Firebase:', err);
+            }
+        } else {
+            db = true; // Simulación para modo MySQL local
+        }
+
         // ── ImgBB — API gratuita para subir fotos ─────────────────────────────
-        // Obtén tu API key gratis en https://imgbb.com/
-        // Regístrate, ve a "About" > "API" > "Get API key"
-        const IMGBB_API_KEY = '618111eea278dce1d160360c7d295a83'; // ⚠️ Clave de ImgBB configurada
+        const IMGBB_API_KEY = '618111eea278dce1d160360c7d295a83';
 
         // ── Variables de Chat ─────────────────────────────────────────
         let chatUnsubscribe = null;   // función para desuscribir listener de Firestore
@@ -3876,6 +3899,30 @@
             const container = document.getElementById('chat-messages-container');
             container.innerHTML = `<div style="text-align:center;padding:40px 20px;color:var(--muted);font-size:13px;">Cargando mensajes...</div>`;
 
+            if (!IS_LOCAL) {
+                // Modo Firebase original (GitHub Pages)
+                if (!db || typeof db.collection !== 'function') {
+                    container.innerHTML = `<div style="text-align:center;padding:40px 20px;color:var(--muted);font-size:13px;">El chat no está disponible (Firebase offline).</div>`;
+                    return;
+                }
+                chatUnsubscribe = db.collection('chats')
+                    .orderBy('timestamp', 'asc')
+                    .limitToLast(80)
+                    .onSnapshot(snapshot => {
+                        if (snapshot.empty) {
+                            container.innerHTML = `<div style="text-align:center;padding:40px 20px;color:var(--muted);font-size:13px;">Sin mensajes aún. ¡Sé el primero!</div>`;
+                            return;
+                        }
+                        messagesList = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                        container.innerHTML = messagesList.map(renderChatMsg).join('');
+                        container.scrollTop = container.scrollHeight;
+                    }, err => {
+                        console.error('Chat snapshot error:', err);
+                        container.innerHTML = `<div style="text-align:center;padding:20px;color:var(--red);font-size:12px;">Error al cargar mensajes</div>`;
+                    });
+                return;
+            }
+
             try {
                 // Obtener historial de chat
                 const history = await fetch(`${API}?accion=chats`).then(r => r.json());
@@ -3980,37 +4027,55 @@
                 let docName = '';
 
                 if (hasImg) {
-                    showToast('⏳ Subiendo imagen...');
-                    const compressed = await compressImage(attachedPhotoFile, 1200, 0.80);
-                    fotoUrl = await uploadFileToServer(compressed, attachedPhotoFile.name);
+                    if (!IS_LOCAL) {
+                        fotoUrl = await uploadChatPhoto(attachedPhotoFile);
+                    } else {
+                        showToast('⏳ Subiendo imagen...');
+                        const compressed = await compressImage(attachedPhotoFile, 1200, 0.80);
+                        fotoUrl = await uploadFileToServer(compressed, attachedPhotoFile.name);
+                    }
                     cancelAttachedPhoto();
                 }
                 if (hasAudio) {
-                    if (attachedAudioBlob.size > 15 * 1024 * 1024) {
-                        showToast('Audio demasiado largo.');
-                        sendBtn.disabled = false;
-                        return;
+                    if (!IS_LOCAL) {
+                        if (attachedAudioBlob.size > 900 * 1024) {
+                            showToast('Audio demasiado largo (máx ~60s).');
+                            sendBtn.disabled = false;
+                            return;
+                        }
+                        showToast('⏳ Preparando audio...');
+                        audioUrl = await fileToBase64(attachedAudioBlob);
+                    } else {
+                        showToast('⏳ Subiendo audio...');
+                        audioUrl = await uploadFileToServer(attachedAudioBlob, 'audio.mp3');
                     }
-                    showToast('⏳ Subiendo audio...');
-                    audioUrl = await uploadFileToServer(attachedAudioBlob, 'audio.mp3');
                     cancelAttachedAudio();
                 }
                 if (hasDoc) {
-                    if (attachedDocFile.size > 15 * 1024 * 1024) {
-                        showToast('El archivo es demasiado grande (máx 15 MB)');
-                        sendBtn.disabled = false;
-                        return;
+                    if (!IS_LOCAL) {
+                        if (attachedDocFile.size > 800 * 1024) {
+                            showToast('El archivo es demasiado grande (máx 800 KB)');
+                            sendBtn.disabled = false;
+                            return;
+                        }
+                        docName = attachedDocFile.name;
+                        showToast('⏳ Preparando documento...');
+                        docUrl = await fileToBase64(attachedDocFile);
+                    } else {
+                        if (attachedDocFile.size > 15 * 1024 * 1024) {
+                            showToast('El archivo es demasiado grande (máx 15 MB)');
+                            sendBtn.disabled = false;
+                            return;
+                        }
+                        docName = attachedDocFile.name;
+                        showToast('⏳ Subiendo documento...');
+                        docUrl = await uploadFileToServer(attachedDocFile, attachedDocFile.name);
                     }
-                    docName = attachedDocFile.name;
-                    showToast('⏳ Subiendo documento...');
-                    docUrl = await uploadFileToServer(attachedDocFile, attachedDocFile.name);
                     cancelAttachedDoc();
                 }
 
-                await fetch('/api/chats', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
+                if (!IS_LOCAL) {
+                    await db.collection('chats').add({
                         texto: texto,
                         fotoUrl: fotoUrl,
                         audioUrl: audioUrl,
@@ -4018,9 +4083,25 @@
                         docName: docName,
                         usuario: senderId,
                         nombre: senderName,
-                        rol: senderRole
-                    })
-                });
+                        rol: senderRole,
+                        timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                    });
+                } else {
+                    await fetch('/api/chats', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            texto: texto,
+                            fotoUrl: fotoUrl,
+                            audioUrl: audioUrl,
+                            docUrl: docUrl,
+                            docName: docName,
+                            usuario: senderId,
+                            nombre: senderName,
+                            rol: senderRole
+                        })
+                    });
+                }
 
                 // Enviar notificación Push
                 if (ONESIGNAL_REST_KEY && ONESIGNAL_REST_KEY !== "5477c4fd-a878-4cd3-b82e-e867b26457f9") {
@@ -4049,10 +4130,39 @@
             }
         }
 
-        // ── Subir foto localmente ──────────────────────
+        // ── Subir foto localmente/remotamente ──────────────────────
         async function uploadChatPhoto(file) {
+            if (IS_LOCAL) {
+                const compressed = await compressImage(file, 1200, 0.80);
+                return uploadFileToServer(compressed, file.name);
+            }
+            // ImgBB (GitHub Pages)
             const compressed = await compressImage(file, 1200, 0.80);
-            return uploadFileToServer(compressed, file.name);
+            const base64 = await fileToBase64(compressed);
+            const base64Data = base64.split(',')[1];
+
+            const form = new FormData();
+            form.append('key', IMGBB_API_KEY);
+            form.append('image', base64Data);
+
+            const res = await fetch('https://api.imgbb.com/1/upload', {
+                method: 'POST',
+                body: form
+            });
+            if (!res.ok) throw new Error('Error al subir imagen a ImgBB');
+            const json = await res.json();
+            if (!json.success) throw new Error(json.error?.message || 'Error ImgBB');
+            return json.data.url;
+        }
+
+        // Leer archivo como base64
+        function fileToBase64(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = e => resolve(e.target.result);
+                reader.onerror = reject;
+                reader.readAsDataURL(file);
+            });
         }
 
         // Comprimir imagen con canvas (sin librerías externas)
