@@ -9,3 +9,8 @@ $RECYCLE.BIN/
 
 # Node modules (si aplica en el futuro)
 node_modules/
+
+# Entorno y archivos locales
+.env
+uploads/
+

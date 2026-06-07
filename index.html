@@ -1542,11 +1542,7 @@
             }
         }
     </style>
-    <!-- Firebase SDKs (Compat v10) -->
-    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-storage-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-messaging-compat.js"></script>
+    <!-- Firebase SDKs removidos por migración a MySQL -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 </head>
 
@@ -2736,7 +2732,7 @@
     </div>
 
     <script>
-        const API = "https://script.google.com/macros/s/AKfycbw376Tltkg4bE11VfCtyG6HQ3AhFsgKc6mmvaUUKD_XgJcZ0MfAVLp_N4J-ii_de9U/exec";
+        const API = window.location.origin + "/api";
         const ROLES_REPORTE = ["Coordinador", "Supervisor"];
 
         // Configuración OneSignal
@@ -3716,32 +3712,10 @@
         loading(false);
 
         // ══════════════════════════════════════════════════════════════
-        // ── FIREBASE: Inicialización ──────────────────────────────────
-        // ══════════════════════════════════════════════════════════════
-        const firebaseConfig = {
-            apiKey: "AIzaSyBpndJT2kwY2ixrPxLjmzmVjbTo4gw60o8",
-            authDomain: "flotilla-c18a3.firebaseapp.com",
-            projectId: "flotilla-c18a3",
-            storageBucket: "flotilla-c18a3.firebasestorage.app",
-            messagingSenderId: "819346593147",
-            appId: "1:819346593147:web:6781408a7a37bd60e519de",
-            measurementId: "G-HY32S0HD1H"
-        };
-        let db = null;
+        // ── CONFIGURACIÓN BACKEND LOCAL (MySQL + uploads) ──────────────────────
+        let db = true; 
         let storage = null;
         let messaging = null;
-        if (typeof firebase !== 'undefined') {
-            try {
-                firebase.initializeApp(firebaseConfig);
-                db = firebase.firestore();
-                storage = firebase.storage();
-                try { messaging = firebase.messaging(); } catch (e) { console.warn('FCM not supported:', e); }
-            } catch (err) {
-                console.error('Error al inicializar Firebase:', err);
-            }
-        } else {
-            console.warn('Firebase SDK no cargado. Chat desactivado.');
-        }
 
         // ── ImgBB — API gratuita para subir fotos ─────────────────────────────
         // Obtén tu API key gratis en https://imgbb.com/
@@ -3783,9 +3757,9 @@
         }
 
         // ── Renderizar un mensaje ─────────────────────────────────────
-        function renderChatMsg(doc) {
-            const data = doc.data();
-            const isMe = currentUser ? data.usuario === currentUser.usuario : (data.rol === 'Operador' && doc.id.length > 5);
+        function renderChatMsg(msg) {
+            const data = msg;
+            const isMe = currentUser ? data.usuario === currentUser.usuario : (data.rol === 'Operador' && String(msg.id).length > 5);
             const isMyAnonMsg = !currentUser && data.rol === 'Operador';
             const cls = (isMe || isMyAnonMsg) ? 'mine' : 'others';
             const color = rolColor(data.rol);
@@ -3830,13 +3804,13 @@
             if (currentUser) {
                 const delIconColor = (isMe || isMyAnonMsg) ? 'rgba(255,255,255,0.8)' : '#ef4444';
                 const delBgColor = (isMe || isMyAnonMsg) ? 'rgba(255,255,255,0.2)' : 'rgba(239, 68, 68, 0.1)';
-                deleteBtnHtml = `<div onclick="deleteChatMessage('${doc.id}')" style="cursor:pointer; display:flex; align-items:center; justify-content:center; width:22px; height:22px; border-radius:50%; background:${delBgColor}; margin-top:4px;" title="Borrar mensaje">
+                deleteBtnHtml = `<div onclick="deleteChatMessage('${msg.id}')" style="cursor:pointer; display:flex; align-items:center; justify-content:center; width:22px; height:22px; border-radius:50%; background:${delBgColor}; margin-top:4px;" title="Borrar mensaje">
                     <svg viewBox="0 0 24 24" style="width:12px; height:12px; stroke:${delIconColor}; fill:none; stroke-width:2; stroke-linecap:round;"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
                 </div>`;
             }
 
             return `
-                <div class="chat-msg-wrap ${cls}" data-id="${doc.id}">
+                <div class="chat-msg-wrap ${cls}" data-id="${msg.id}">
                     ${!(isMe || isMyAnonMsg) ? `<div class="chat-avatar" style="background:${color};">${initials(data.nombre)}</div>` : ''}
                     <div class="chat-bubble">
                         <div class="chat-meta">
@@ -3853,15 +3827,21 @@
         }
 
         async function deleteChatMessage(docId) {
-            if (!db) { showToast("Chat no disponible en este momento"); return; }
             if (confirm("¿Estás seguro de borrar este mensaje para todos?")) {
-                try { await db.collection('chats').doc(docId).delete(); }
+                try {
+                    const res = await fetch(`/api/chats/${docId}`, { method: 'DELETE' }).then(r => r.json());
+                    if (!res.ok) showToast("Error al borrar");
+                }
                 catch (e) { console.error(e); showToast("Error al borrar"); }
             }
         }
 
         // ── Atrás del chat ────────────────────────────────────────────
         function closeChat() {
+            if (chatUnsubscribe) {
+                chatUnsubscribe();
+                chatUnsubscribe = null;
+            }
             if (currentUser) {
                 show('s-home'); // si está logueado, regresa al inicio
             } else {
@@ -3870,6 +3850,7 @@
         }
 
         // ── Mostrar pantalla de Chat ──────────────────────────────────
+        let messagesList = [];
         async function showChat(isAnonymous = false) {
             if (!currentUser && !isAnonymous) { showToast('Inicia sesión primero'); return; }
             show('s-chat');
@@ -3895,30 +3876,64 @@
             const container = document.getElementById('chat-messages-container');
             container.innerHTML = `<div style="text-align:center;padding:40px 20px;color:var(--muted);font-size:13px;">Cargando mensajes...</div>`;
 
-            if (!db) {
-                container.innerHTML = `<div style="text-align:center;padding:40px 20px;color:var(--muted);font-size:13px;">El chat no está disponible (Firebase offline).</div>`;
-                return;
+            try {
+                // Obtener historial de chat
+                const history = await fetch(`${API}?accion=chats`).then(r => r.json());
+                messagesList = history;
+                if (messagesList.length === 0) {
+                    container.innerHTML = `<div style="text-align:center;padding:40px 20px;color:var(--muted);font-size:13px;">Sin mensajes aún. ¡Sé el primero!</div>`;
+                } else {
+                    container.innerHTML = messagesList.map(renderChatMsg).join('');
+                    container.scrollTop = container.scrollHeight;
+                }
+            } catch (err) {
+                console.error('Error al cargar mensajes históricos:', err);
+                container.innerHTML = `<div style="text-align:center;padding:20px;color:var(--red);font-size:12px;">Error al cargar mensajes</div>`;
             }
 
-            chatUnsubscribe = db.collection('chats')
-                .orderBy('timestamp', 'asc')
-                .limitToLast(80)
-                .onSnapshot(snapshot => {
-                    if (snapshot.empty) {
-                        container.innerHTML = `<div style="text-align:center;padding:40px 20px;color:var(--muted);font-size:13px;">Sin mensajes aún. ¡Sé el primero!</div>`;
-                        return;
+            // Establecer stream SSE
+            const eventSource = new EventSource('/api/chats/stream');
+            eventSource.onmessage = (event) => {
+                const data = JSON.parse(event.data);
+                if (data.type === 'add') {
+                    // Evitar duplicados
+                    if (!messagesList.some(m => m.id === data.message.id)) {
+                        messagesList.push(data.message);
+                        container.innerHTML = messagesList.map(renderChatMsg).join('');
+                        container.scrollTop = container.scrollHeight;
                     }
-                    container.innerHTML = snapshot.docs.map(renderChatMsg).join('');
-                    container.scrollTop = container.scrollHeight;
-                }, err => {
-                    console.error('Chat snapshot error:', err);
-                    container.innerHTML = `<div style="text-align:center;padding:20px;color:var(--red);font-size:12px;">Error al cargar mensajes</div>`;
-                });
+                } else if (data.type === 'delete') {
+                    messagesList = messagesList.filter(m => m.id !== data.id);
+                    if (messagesList.length === 0) {
+                        container.innerHTML = `<div style="text-align:center;padding:40px 20px;color:var(--muted);font-size:13px;">Sin mensajes aún. ¡Sé el primero!</div>`;
+                    } else {
+                        container.innerHTML = messagesList.map(renderChatMsg).join('');
+                    }
+                }
+            };
+
+            chatUnsubscribe = () => {
+                eventSource.close();
+            };
+        }
+
+        // Helper para subir archivos a nuestro servidor local
+        async function uploadFileToServer(fileOrBlob, filename) {
+            const form = new FormData();
+            form.append('file', fileOrBlob, filename);
+
+            const res = await fetch('/api/upload', {
+                method: 'POST',
+                body: form
+            });
+            if (!res.ok) throw new Error('Error al subir archivo');
+            const json = await res.json();
+            if (!json.ok) throw new Error(json.error || 'Error en subida');
+            return json.url;
         }
 
         // ── Enviar mensaje ────────────────────────────────────────────
         async function sendChatMessage() {
-            if (!db) { showToast("Chat no disponible"); return; }
             const input = document.getElementById('chat-message-input');
             const texto = input.value.trim();
             const hasText = texto.length > 0;
@@ -3936,7 +3951,6 @@
                 senderName = currentUser.nombre;
                 senderRole = currentUser.rol;
             } else {
-                // Operador anónimo: usar nombre guardado por goToOperatorChat o campo de la unidad
                 const form = document.getElementById("op-step-form");
                 const savedName = form.dataset.operadorNombre;
                 const savedId = form.dataset.operadorId;
@@ -3966,45 +3980,49 @@
                 let docName = '';
 
                 if (hasImg) {
-                    fotoUrl = await uploadChatPhoto(attachedPhotoFile);
+                    showToast('⏳ Subiendo imagen...');
+                    const compressed = await compressImage(attachedPhotoFile, 1200, 0.80);
+                    fotoUrl = await uploadFileToServer(compressed, attachedPhotoFile.name);
                     cancelAttachedPhoto();
                 }
                 if (hasAudio) {
-                    // Guardar audio como Base64 en Firestore (sin servicios externos)
-                    if (attachedAudioBlob.size > 900 * 1024) {
-                        showToast('Audio demasiado largo (máx ~60s). Graba uno más corto.');
+                    if (attachedAudioBlob.size > 15 * 1024 * 1024) {
+                        showToast('Audio demasiado largo.');
                         sendBtn.disabled = false;
                         return;
                     }
-                    showToast('⏳ Preparando audio...');
-                    audioUrl = await fileToBase64(attachedAudioBlob);
+                    showToast('⏳ Subiendo audio...');
+                    audioUrl = await uploadFileToServer(attachedAudioBlob, 'audio.mp3');
                     cancelAttachedAudio();
                 }
                 if (hasDoc) {
-                    if (attachedDocFile.size > 800 * 1024) {
-                        showToast('El archivo es demasiado grande (máx 800 KB)');
+                    if (attachedDocFile.size > 15 * 1024 * 1024) {
+                        showToast('El archivo es demasiado grande (máx 15 MB)');
                         sendBtn.disabled = false;
                         return;
                     }
                     docName = attachedDocFile.name;
-                    showToast('⏳ Preparando documento...');
-                    docUrl = await fileToBase64(attachedDocFile);
+                    showToast('⏳ Subiendo documento...');
+                    docUrl = await uploadFileToServer(attachedDocFile, attachedDocFile.name);
                     cancelAttachedDoc();
                 }
 
-                await db.collection('chats').add({
-                    texto: texto,
-                    fotoUrl: fotoUrl,
-                    audioUrl: audioUrl,
-                    docUrl: docUrl,
-                    docName: docName,
-                    usuario: senderId,
-                    nombre: senderName,
-                    rol: senderRole,
-                    timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                await fetch('/api/chats', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        texto: texto,
+                        fotoUrl: fotoUrl,
+                        audioUrl: audioUrl,
+                        docUrl: docUrl,
+                        docName: docName,
+                        usuario: senderId,
+                        nombre: senderName,
+                        rol: senderRole
+                    })
                 });
 
-                // Enviar notificación Push a través de OneSignal REST API (si se configuró la API Key)
+                // Enviar notificación Push
                 if (ONESIGNAL_REST_KEY && ONESIGNAL_REST_KEY !== "5477c4fd-a878-4cd3-b82e-e867b26457f9") {
                     try {
                         fetch("https://thingproxy.freeboard.io/fetch/https://onesignal.com/api/v1/notifications", {
@@ -4024,38 +4042,17 @@
                 }
             } catch (e) {
                 console.error('Error enviando mensaje:', e);
-                showToast('Error: ' + (e.message || 'Error al enviar'));
+                showToast('Error al enviar');
             } finally {
                 sendBtn.disabled = false;
                 input.focus();
             }
         }
 
-        // ── Subir foto a ImgBB (gratis, sin límite) ──────────────────────
+        // ── Subir foto localmente ──────────────────────
         async function uploadChatPhoto(file) {
-            // Comprimir imagen antes de subir (máx 1200px, calidad 0.80)
             const compressed = await compressImage(file, 1200, 0.80);
-
-            // Convertir a base64 para enviar a ImgBB
-            const base64 = await fileToBase64(compressed);
-            const base64Data = base64.split(',')[1]; // quitar el prefijo data:image/...;base64,
-
-            if (!IMGBB_API_KEY || IMGBB_API_KEY === 'T618111eea278dce1d160360c7d295a83') {
-                throw new Error('Configura tu API key de ImgBB en el código');
-            }
-
-            const form = new FormData();
-            form.append('key', IMGBB_API_KEY);
-            form.append('image', base64Data);
-
-            const res = await fetch('https://api.imgbb.com/1/upload', {
-                method: 'POST',
-                body: form
-            });
-            if (!res.ok) throw new Error('Error al subir imagen a ImgBB');
-            const json = await res.json();
-            if (!json.success) throw new Error(json.error?.message || 'Error ImgBB');
-            return json.data.url; // URL pública permanente
+            return uploadFileToServer(compressed, file.name);
         }
 
         // Comprimir imagen con canvas (sin librerías externas)
@@ -4349,16 +4346,17 @@
         }
 
         // Escuchar mensajes en segundo plano para mostrar el badge y notificar
+        let badgeEventSource = null;
         function startChatBadgeListener() {
-            if (!currentUser || !db) return;
-            db.collection('chats')
-                .orderBy('timestamp', 'desc')
-                .limit(1)
-                .onSnapshot(snap => {
-                    if (snap.empty) return;
-                    const latest = snap.docs[0].data();
-                    if (!latest.timestamp) return;
-                    const latestMs = latest.timestamp.toMillis ? latest.timestamp.toMillis() : 0;
+            if (!currentUser) return;
+            if (badgeEventSource) badgeEventSource.close();
+            
+            badgeEventSource = new EventSource('/api/chats/stream');
+            badgeEventSource.onmessage = (event) => {
+                const data = JSON.parse(event.data);
+                if (data.type === 'add') {
+                    const latest = data.message;
+                    const latestMs = new Date(latest.timestamp).getTime();
                     if (latest.usuario !== currentUser.usuario && latestMs > chatLastSeenTs) {
                         const chatOpen = document.getElementById('s-chat').classList.contains('active');
                         if (!chatOpen) {
@@ -4367,7 +4365,8 @@
                             fireNativeNotification(latest.nombre || 'Flota', latest.texto || '🎙️ Mensaje de voz o archivo');
                         }
                     }
-                });
+                }
+            };
         }
 
         // Arrancar listener de badge cuando el usuario inicia sesión
