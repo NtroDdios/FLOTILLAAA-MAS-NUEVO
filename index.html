@@ -2741,7 +2741,7 @@
 
         // Configuración OneSignal
         const ONESIGNAL_APP_ID = "5477c4fd-a878-4cd3-b82e-e867b26457f9";
-        const ONESIGNAL_REST_KEY = "TU_REST_API_KEY_AQUI";
+        const ONESIGNAL_REST_KEY = "os_v2_app_kr34j7nipbgnhobo5bt3ezcx7gbpsfkltfeuqqm3unwib3ygkffbtzple2ypw5spq7lti6cipez5wlpknsu46bhessss5ud72b6bsra";
 
         window.OneSignal = window.OneSignal || [];
         OneSignal.push(function() {
@@ -4007,7 +4007,7 @@
                 // Enviar notificación Push a través de OneSignal REST API (si se configuró la API Key)
                 if (ONESIGNAL_REST_KEY && ONESIGNAL_REST_KEY !== "5477c4fd-a878-4cd3-b82e-e867b26457f9") {
                     try {
-                        fetch("https://onesignal.com/api/v1/notifications", {
+                        fetch("https://thingproxy.freeboard.io/fetch/https://onesignal.com/api/v1/notifications", {
                             method: "POST",
                             headers: {
                                 "Content-Type": "application/json; charset=utf-8",
