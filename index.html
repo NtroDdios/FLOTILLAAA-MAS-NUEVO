@@ -13,6 +13,7 @@
     <link
         href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap"
         rel="stylesheet">
+    <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignal.page.js" defer></script>
     <style>
         :root {
             --bg: #f8fafc;
@@ -2738,6 +2739,21 @@
         const API = "https://script.google.com/macros/s/AKfycbw376Tltkg4bE11VfCtyG6HQ3AhFsgKc6mmvaUUKD_XgJcZ0MfAVLp_N4J-ii_de9U/exec";
         const ROLES_REPORTE = ["Coordinador", "Supervisor"];
 
+        // Configuración OneSignal
+        const ONESIGNAL_APP_ID = "5477c4fd-a878-4cd3-b82e-e867b26457f9";
+        const ONESIGNAL_REST_KEY = "TU_REST_API_KEY_AQUI";
+
+        window.OneSignal = window.OneSignal || [];
+        OneSignal.push(function() {
+            OneSignal.init({
+                appId: ONESIGNAL_APP_ID,
+                allowLocalhostAsSecureOrigin: true,
+                notifyButton: {
+                    enable: false,
+                }
+            });
+        });
+
         const USERS = {
             "gilagor": { nombre: "Gregorio Ilagor", rol: "Coordinador", clave: "Flota2026#G" },
             "wramos": { nombre: "Williams Ramos", rol: "Supervisor", clave: "Flota2026#S" },
@@ -3987,6 +4003,25 @@
                     rol: senderRole,
                     timestamp: firebase.firestore.FieldValue.serverTimestamp()
                 });
+
+                // Enviar notificación Push a través de OneSignal REST API (si se configuró la API Key)
+                if (ONESIGNAL_REST_KEY && ONESIGNAL_REST_KEY !== "TU_REST_API_KEY_AQUI") {
+                    try {
+                        fetch("https://onesignal.com/api/v1/notifications", {
+                            method: "POST",
+                            headers: {
+                                "Content-Type": "application/json; charset=utf-8",
+                                "Authorization": "Basic " + ONESIGNAL_REST_KEY
+                            },
+                            body: JSON.stringify({
+                                app_id: ONESIGNAL_APP_ID,
+                                included_segments: ["All"],
+                                headings: {"es": `💬 Chat de Flota — ${senderName}`},
+                                contents: {"es": texto || "🎙️ Mensaje de voz o archivo"}
+                            })
+                        }).catch(err => console.warn("Error enviando push:", err));
+                    } catch(e) {}
+                }
             } catch (e) {
                 console.error('Error enviando mensaje:', e);
                 showToast('Error: ' + (e.message || 'Error al enviar'));
@@ -4254,17 +4289,26 @@
 
         // ── Notificaciones nativas del navegador ────────────────────────────────
         async function requestPushPermission() {
-            if (!('Notification' in window)) {
-                showToast('Tu navegador no soporta notificaciones');
-                return;
-            }
-            const permission = await Notification.requestPermission();
-            if (permission === 'granted') {
+            if (window.OneSignal) {
+                OneSignal.push(function() {
+                    OneSignal.showSlidedownPrompt();
+                });
                 document.getElementById('chat-push-banner').style.display = 'none';
-                showToast('✅ Notificaciones activadas');
                 localStorage.setItem('notif_granted', '1');
+                showToast('✅ Solicitud de notificaciones enviada');
             } else {
-                showToast('Permiso denegado. Actívalo en ajustes del navegador.');
+                if (!('Notification' in window)) {
+                    showToast('Tu navegador no soporta notificaciones');
+                    return;
+                }
+                const permission = await Notification.requestPermission();
+                if (permission === 'granted') {
+                    document.getElementById('chat-push-banner').style.display = 'none';
+                    showToast('✅ Notificaciones activadas');
+                    localStorage.setItem('notif_granted', '1');
+                } else {
+                    showToast('Permiso denegado. Actívalo en ajustes del navegador.');
+                }
             }
         }
 
