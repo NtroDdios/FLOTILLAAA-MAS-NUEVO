@@ -1542,7 +1542,11 @@
             }
         }
     </style>
-    <!-- Firebase SDKs removidos por migración a MySQL -->
+    <!-- Firebase SDKs para modo producción en GitHub Pages -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-storage.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-messaging.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 </head>
 
@@ -4457,26 +4461,49 @@
 
         // Escuchar mensajes en segundo plano para mostrar el badge y notificar
         let badgeEventSource = null;
+        let badgeFirebaseUnsubscribe = null;
         function startChatBadgeListener() {
             if (!currentUser) return;
-            if (badgeEventSource) badgeEventSource.close();
+            if (badgeEventSource) { badgeEventSource.close(); badgeEventSource = null; }
+            if (badgeFirebaseUnsubscribe) { badgeFirebaseUnsubscribe(); badgeFirebaseUnsubscribe = null; }
             
-            badgeEventSource = new EventSource('/api/chats/stream');
-            badgeEventSource.onmessage = (event) => {
-                const data = JSON.parse(event.data);
-                if (data.type === 'add') {
-                    const latest = data.message;
-                    const latestMs = new Date(latest.timestamp).getTime();
-                    if (latest.usuario !== currentUser.usuario && latestMs > chatLastSeenTs) {
-                        const chatOpen = document.getElementById('s-chat').classList.contains('active');
-                        if (!chatOpen) {
-                            chatLastSeenTs = latestMs;
-                            updateChatBadges(true);
-                            fireNativeNotification(latest.nombre || 'Flota', latest.texto || '🎙️ Mensaje de voz o archivo');
+            if (IS_LOCAL) {
+                badgeEventSource = new EventSource('/api/chats/stream');
+                badgeEventSource.onmessage = (event) => {
+                    const data = JSON.parse(event.data);
+                    if (data.type === 'add') {
+                        const latest = data.message;
+                        const latestMs = new Date(latest.timestamp).getTime();
+                        if (latest.usuario !== currentUser.usuario && latestMs > chatLastSeenTs) {
+                            const chatOpen = document.getElementById('s-chat').classList.contains('active');
+                            if (!chatOpen) {
+                                chatLastSeenTs = latestMs;
+                                updateChatBadges(true);
+                                fireNativeNotification(latest.nombre || 'Flota', latest.texto || '🎙️ Mensaje de voz o archivo');
+                            }
                         }
                     }
+                };
+            } else {
+                if (db && typeof db.collection === 'function') {
+                    badgeFirebaseUnsubscribe = db.collection('chats')
+                        .orderBy('timestamp', 'desc')
+                        .limit(1)
+                        .onSnapshot(snapshot => {
+                            if (snapshot.empty) return;
+                            const latest = snapshot.docs[0].data();
+                            const latestMs = latest.timestamp ? (latest.timestamp.toDate ? latest.timestamp.toDate().getTime() : new Date(latest.timestamp).getTime()) : 0;
+                            if (latest.usuario !== currentUser.usuario && latestMs > chatLastSeenTs) {
+                                const chatOpen = document.getElementById('s-chat').classList.contains('active');
+                                if (!chatOpen) {
+                                    chatLastSeenTs = latestMs;
+                                    updateChatBadges(true);
+                                    fireNativeNotification(latest.nombre || 'Flota', latest.texto || '🎙️ Mensaje de voz o archivo');
+                                }
+                            }
+                        });
                 }
-            };
+            }
         }
 
         // Arrancar listener de badge cuando el usuario inicia sesión
