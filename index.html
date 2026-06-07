@@ -5072,13 +5072,11 @@ td,th{border:0.6px solid #aaa;padding:1px 1.5px;vertical-align:middle;line-heigh
                 try {
                     const payload = {
                         accion: "enviar_pdf_checklist",
-                        pdf: base64Data,
-                        nombre_archivo: '4-DEP-DS-SA-028.pdf',
+                        pdf_base64: base64Data,
+                        filename: '4-DEP-DS-SA-028.pdf',
                         destinatarios: VCKL_EMAILS.join(','),
-                        unidad: vcklState.unitId,
-                        operador: nombreVal,
-                        fecha: fechaVal,
-                        km: kmVal
+                        subject: `Checklist Unidad ${vcklState.unitId} - ${nombreVal}`,
+                        bodyText: `Se adjunta el checklist en PDF correspondiente a la unidad ${vcklState.unitId}.\n\nOperador: ${nombreVal}\nFecha: ${fechaVal}\nKilometraje: ${kmVal} km`
                     };
                     
                     showToast("📤 Enviando PDF a Gmail...");
