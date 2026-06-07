@@ -5083,7 +5083,8 @@ td,th{border:0.6px solid #aaa;padding:1px 1.5px;vertical-align:middle;line-heigh
                     const res = await apiPost(payload);
                     
                     if (res.ok) {
-                        showToast("✅ Checklist enviado correctamente por correo!");
+                        showToast("✅ Checklist enviado y descargado!");
+                        downloadFallback(pdfBlob);
                         setTimeout(() => {
                             if (vcklOriginScreen === "s-operator") {
                                 show("s-operator");
@@ -5093,7 +5094,6 @@ td,th{border:0.6px solid #aaa;padding:1px 1.5px;vertical-align:middle;line-heigh
                         }, 1500);
                     } else {
                         showToast("❌ Error al enviar checklist: " + (res.error || "desconocido"), 4000);
-                        // Fallback: descargar
                         downloadFallback(pdfBlob);
                     }
                 } catch (e) {
