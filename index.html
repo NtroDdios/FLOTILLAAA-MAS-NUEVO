@@ -4005,7 +4005,7 @@
                 });
 
                 // Enviar notificación Push a través de OneSignal REST API (si se configuró la API Key)
-                if (ONESIGNAL_REST_KEY && ONESIGNAL_REST_KEY !== "T5477c4fd-a878-4cd3-b82e-e867b26457f9") {
+                if (ONESIGNAL_REST_KEY && ONESIGNAL_REST_KEY !== "5477c4fd-a878-4cd3-b82e-e867b26457f9") {
                     try {
                         fetch("https://onesignal.com/api/v1/notifications", {
                             method: "POST",
@@ -4134,11 +4134,32 @@
                 const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
                 recordingChunks = [];
                 recordingSeconds = 0;
-                mediaRecorder = new MediaRecorder(stream);
+                let mimeType = 'audio/mp4';
+                if (typeof MediaRecorder.isTypeSupported === 'function') {
+                    if (MediaRecorder.isTypeSupported('audio/webm')) {
+                        mimeType = 'audio/webm';
+                    } else if (MediaRecorder.isTypeSupported('audio/mp4')) {
+                        mimeType = 'audio/mp4';
+                    } else if (MediaRecorder.isTypeSupported('audio/aac')) {
+                        mimeType = 'audio/aac';
+                    } else if (MediaRecorder.isTypeSupported('audio/ogg')) {
+                        mimeType = 'audio/ogg';
+                    } else if (MediaRecorder.isTypeSupported('audio/wav')) {
+                        mimeType = 'audio/wav';
+                    }
+                }
+                
+                try {
+                    mediaRecorder = new MediaRecorder(stream, { mimeType: mimeType });
+                } catch(e) {
+                    mediaRecorder = new MediaRecorder(stream);
+                }
+
                 mediaRecorder.ondataavailable = e => { if (e.data.size > 0) recordingChunks.push(e.data); };
                 mediaRecorder.onstop = () => {
                     stream.getTracks().forEach(t => t.stop());
-                    attachedAudioBlob = new Blob(recordingChunks, { type: 'audio/webm' });
+                    const actualType = mediaRecorder.mimeType || mimeType;
+                    attachedAudioBlob = new Blob(recordingChunks, { type: actualType });
                     attachedAudioDuration = recordingSeconds;
                     const url = URL.createObjectURL(attachedAudioBlob);
                     document.getElementById('chat-audio-preview-player').src = url;
