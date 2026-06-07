@@ -2739,7 +2739,7 @@
         const IS_LOCAL = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
         const API = IS_LOCAL 
             ? (window.location.origin + "/api")
-            : "https://script.google.com/macros/s/AKfycbw376Tltkg4bE11VfCtyG6HQ3AhFsgKc6mmvaUUKD_XgJcZ0MfAVLp_N4J-ii_de9U/exec";
+            : "https://flotillaaa-mas-nuevo.onrender.com/api";
         const ROLES_REPORTE = ["Coordinador", "Supervisor"];
 
         // Configuración OneSignal
@@ -3903,30 +3903,6 @@
             const container = document.getElementById('chat-messages-container');
             container.innerHTML = `<div style="text-align:center;padding:40px 20px;color:var(--muted);font-size:13px;">Cargando mensajes...</div>`;
 
-            if (!IS_LOCAL) {
-                // Modo Firebase original (GitHub Pages)
-                if (!db || typeof db.collection !== 'function') {
-                    container.innerHTML = `<div style="text-align:center;padding:40px 20px;color:var(--muted);font-size:13px;">El chat no está disponible (Firebase offline).</div>`;
-                    return;
-                }
-                chatUnsubscribe = db.collection('chats')
-                    .orderBy('timestamp', 'asc')
-                    .limitToLast(80)
-                    .onSnapshot(snapshot => {
-                        if (snapshot.empty) {
-                            container.innerHTML = `<div style="text-align:center;padding:40px 20px;color:var(--muted);font-size:13px;">Sin mensajes aún. ¡Sé el primero!</div>`;
-                            return;
-                        }
-                        messagesList = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                        container.innerHTML = messagesList.map(renderChatMsg).join('');
-                        container.scrollTop = container.scrollHeight;
-                    }, err => {
-                        console.error('Chat snapshot error:', err);
-                        container.innerHTML = `<div style="text-align:center;padding:20px;color:var(--red);font-size:12px;">Error al cargar mensajes</div>`;
-                    });
-                return;
-            }
-
             try {
                 // Obtener historial de chat
                 const history = await fetch(`${API}?accion=chats`).then(r => r.json());
@@ -3943,7 +3919,7 @@
             }
 
             // Establecer stream SSE
-            const eventSource = new EventSource('/api/chats/stream');
+            const eventSource = new EventSource(API + '/chats/stream');
             eventSource.onmessage = (event) => {
                 const data = JSON.parse(event.data);
                 if (data.type === 'add') {
@@ -4031,55 +4007,37 @@
                 let docName = '';
 
                 if (hasImg) {
-                    if (!IS_LOCAL) {
-                        fotoUrl = await uploadChatPhoto(attachedPhotoFile);
-                    } else {
-                        showToast('⏳ Subiendo imagen...');
-                        const compressed = await compressImage(attachedPhotoFile, 1200, 0.80);
-                        fotoUrl = await uploadFileToServer(compressed, attachedPhotoFile.name);
-                    }
+                    showToast('⏳ Preparando imagen...');
+                    const compressed = await compressImage(attachedPhotoFile, 1200, 0.80);
+                    fotoUrl = await fileToBase64(compressed);
                     cancelAttachedPhoto();
                 }
                 if (hasAudio) {
-                    if (!IS_LOCAL) {
-                        if (attachedAudioBlob.size > 900 * 1024) {
-                            showToast('Audio demasiado largo (máx ~60s).');
-                            sendBtn.disabled = false;
-                            return;
-                        }
-                        showToast('⏳ Preparando audio...');
-                        audioUrl = await fileToBase64(attachedAudioBlob);
-                    } else {
-                        showToast('⏳ Subiendo audio...');
-                        audioUrl = await uploadFileToServer(attachedAudioBlob, 'audio.mp3');
+                    if (attachedAudioBlob.size > 900 * 1024) {
+                        showToast('Audio demasiado largo (máx ~60s).');
+                        sendBtn.disabled = false;
+                        return;
                     }
+                    showToast('⏳ Preparando audio...');
+                    audioUrl = await fileToBase64(attachedAudioBlob);
                     cancelAttachedAudio();
                 }
                 if (hasDoc) {
-                    if (!IS_LOCAL) {
-                        if (attachedDocFile.size > 800 * 1024) {
-                            showToast('El archivo es demasiado grande (máx 800 KB)');
-                            sendBtn.disabled = false;
-                            return;
-                        }
-                        docName = attachedDocFile.name;
-                        showToast('⏳ Preparando documento...');
-                        docUrl = await fileToBase64(attachedDocFile);
-                    } else {
-                        if (attachedDocFile.size > 15 * 1024 * 1024) {
-                            showToast('El archivo es demasiado grande (máx 15 MB)');
-                            sendBtn.disabled = false;
-                            return;
-                        }
-                        docName = attachedDocFile.name;
-                        showToast('⏳ Subiendo documento...');
-                        docUrl = await uploadFileToServer(attachedDocFile, attachedDocFile.name);
+                    if (attachedDocFile.size > 10 * 1024 * 1024) {
+                        showToast('El archivo es demasiado grande (máx 10 MB)');
+                        sendBtn.disabled = false;
+                        return;
                     }
+                    docName = attachedDocFile.name;
+                    showToast('⏳ Preparando documento...');
+                    docUrl = await fileToBase64(attachedDocFile);
                     cancelAttachedDoc();
                 }
 
-                if (!IS_LOCAL) {
-                    await db.collection('chats').add({
+                await fetch(API + '/chats', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
                         texto: texto,
                         fotoUrl: fotoUrl,
                         audioUrl: audioUrl,
@@ -4087,25 +4045,9 @@
                         docName: docName,
                         usuario: senderId,
                         nombre: senderName,
-                        rol: senderRole,
-                        timestamp: firebase.firestore.FieldValue.serverTimestamp()
-                    });
-                } else {
-                    await fetch('/api/chats', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            texto: texto,
-                            fotoUrl: fotoUrl,
-                            audioUrl: audioUrl,
-                            docUrl: docUrl,
-                            docName: docName,
-                            usuario: senderId,
-                            nombre: senderName,
-                            rol: senderRole
-                        })
-                    });
-                }
+                        rol: senderRole
+                    })
+                });
 
                 // Enviar notificación Push
                 if (ONESIGNAL_REST_KEY && ONESIGNAL_REST_KEY !== "5477c4fd-a878-4cd3-b82e-e867b26457f9") {
@@ -4461,49 +4403,26 @@
 
         // Escuchar mensajes en segundo plano para mostrar el badge y notificar
         let badgeEventSource = null;
-        let badgeFirebaseUnsubscribe = null;
         function startChatBadgeListener() {
             if (!currentUser) return;
             if (badgeEventSource) { badgeEventSource.close(); badgeEventSource = null; }
-            if (badgeFirebaseUnsubscribe) { badgeFirebaseUnsubscribe(); badgeFirebaseUnsubscribe = null; }
             
-            if (IS_LOCAL) {
-                badgeEventSource = new EventSource('/api/chats/stream');
-                badgeEventSource.onmessage = (event) => {
-                    const data = JSON.parse(event.data);
-                    if (data.type === 'add') {
-                        const latest = data.message;
-                        const latestMs = new Date(latest.timestamp).getTime();
-                        if (latest.usuario !== currentUser.usuario && latestMs > chatLastSeenTs) {
-                            const chatOpen = document.getElementById('s-chat').classList.contains('active');
-                            if (!chatOpen) {
-                                chatLastSeenTs = latestMs;
-                                updateChatBadges(true);
-                                fireNativeNotification(latest.nombre || 'Flota', latest.texto || '🎙️ Mensaje de voz o archivo');
-                            }
+            badgeEventSource = new EventSource(API + '/chats/stream');
+            badgeEventSource.onmessage = (event) => {
+                const data = JSON.parse(event.data);
+                if (data.type === 'add') {
+                    const latest = data.message;
+                    const latestMs = new Date(latest.timestamp).getTime();
+                    if (latest.usuario !== currentUser.usuario && latestMs > chatLastSeenTs) {
+                        const chatOpen = document.getElementById('s-chat').classList.contains('active');
+                        if (!chatOpen) {
+                            chatLastSeenTs = latestMs;
+                            updateChatBadges(true);
+                            fireNativeNotification(latest.nombre || 'Flota', latest.texto || '🎙️ Mensaje de voz o archivo');
                         }
                     }
-                };
-            } else {
-                if (db && typeof db.collection === 'function') {
-                    badgeFirebaseUnsubscribe = db.collection('chats')
-                        .orderBy('timestamp', 'desc')
-                        .limit(1)
-                        .onSnapshot(snapshot => {
-                            if (snapshot.empty) return;
-                            const latest = snapshot.docs[0].data();
-                            const latestMs = latest.timestamp ? (latest.timestamp.toDate ? latest.timestamp.toDate().getTime() : new Date(latest.timestamp).getTime()) : 0;
-                            if (latest.usuario !== currentUser.usuario && latestMs > chatLastSeenTs) {
-                                const chatOpen = document.getElementById('s-chat').classList.contains('active');
-                                if (!chatOpen) {
-                                    chatLastSeenTs = latestMs;
-                                    updateChatBadges(true);
-                                    fireNativeNotification(latest.nombre || 'Flota', latest.texto || '🎙️ Mensaje de voz o archivo');
-                                }
-                            }
-                        });
                 }
-            }
+            };
         }
 
         // Arrancar listener de badge cuando el usuario inicia sesión

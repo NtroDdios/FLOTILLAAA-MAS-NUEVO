@@ -3,9 +3,11 @@
   "version": "1.0.0",
   "description": "Backend local para la PWA FlotaControl con MySQL",
   "main": "server.js",
+  "bin": "server.js",
   "scripts": {
     "start": "node server.js",
-    "dev": "node --watch server.js"
+    "dev": "node --watch server.js",
+    "build:bin": "pkg . --out-path dist"
   },
   "dependencies": {
     "cors": "^2.8.5",
@@ -13,5 +15,21 @@
     "express": "^4.19.2",
     "multer": "^1.4.5-lts.1",
     "mysql2": "^3.9.2"
+  },
+  "devDependencies": {
+    "pkg": "^5.8.1"
+  },
+  "pkg": {
+    "assets": [
+      "index.html",
+      "manifest.json",
+      "sw.js",
+      "*.png",
+      "OneSignalSDKWorker.js"
+    ],
+    "targets": [
+      "node18-win-x64",
+      "node18-linux-x64"
+    ]
   }
 }

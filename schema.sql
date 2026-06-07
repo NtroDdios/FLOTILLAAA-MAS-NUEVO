@@ -48,9 +48,9 @@ CREATE TABLE IF NOT EXISTS afinaciones (
 CREATE TABLE IF NOT EXISTS chats (
     id INT AUTO_INCREMENT PRIMARY KEY,
     texto TEXT,
-    fotoUrl TEXT,
-    audioUrl TEXT,
-    docUrl TEXT,
+    fotoUrl LONGTEXT,
+    audioUrl LONGTEXT,
+    docUrl LONGTEXT,
     docName VARCHAR(255),
     usuario VARCHAR(100),
     nombre VARCHAR(255),

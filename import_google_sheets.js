@@ -9,7 +9,9 @@ async function importData() {
         host: process.env.DB_HOST || 'localhost',
         user: process.env.DB_USER || 'root',
         password: process.env.DB_PASSWORD || '',
-        database: process.env.DB_NAME || 'flotacontrol'
+        database: process.env.DB_NAME || 'flotacontrol',
+        port: parseInt(process.env.DB_PORT) || 3306,
+        ssl: process.env.DB_SSL === 'true' ? { rejectUnauthorized: false } : undefined
     });
 
     console.log('⏳ Descargando datos desde Google Sheets / Apps Script...');
